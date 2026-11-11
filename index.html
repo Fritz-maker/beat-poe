@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17121a">
+<title>Beat Poe!</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23dbc494'/%3E%3Ctext x='16' y='24' font-size='22' font-weight='800' font-family='sans-serif' text-anchor='middle' fill='%23332114'%3EP%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<main id="app" class="loading">
+
+  <section class="foe" id="foeBox">
+    <div class="row">
+      <span class="name" id="foeName">Beat Poe!</span>
+      <span class="small" id="foeCount"></span>
+    </div>
+    <div class="bar foebar"><div class="fill" id="foeFill"></div><span id="foeHp"></span></div>
+    <div class="small wave" id="wave"></div>
+  </section>
+
+  <section class="you" id="youBox">
+    <div class="bar youbar"><div class="fill" id="youFill"></div><span id="youHp"></span></div>
+    <div class="lives" id="lives" title="Bonus lives (used in the final fight)"></div>
+  </section>
+
+  <div class="msg small" id="msg" aria-live="polite"></div>
+
+  <section class="tray">
+    <div class="word" id="word"></div>
+    <div class="small" id="wordInfo"></div>
+    <div class="banner" id="banner" hidden></div>
+  </section>
+
+  <section class="board"><div class="grid" id="grid"></div></section>
+
+  <section class="buttons">
+    <button id="btnBack" aria-label="Undo last letter">&#9003;</button>
+    <button id="btnClear">Clear</button>
+    <button id="btnScramble">Scramble</button>
+    <button id="btnPlay" class="primary">Play</button>
+  </section>
+
+  <section class="last">
+    <div id="lastLine" class="small"></div>
+    <button id="btnCommon" class="link small"></button>
+  </section>
+
+  <div class="overlay" id="overlay" hidden>
+    <div class="card">
+      <h1 id="ovTitle"></h1>
+      <p id="ovText"></p>
+      <button id="ovBtn" class="primary">Continue</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="loading">
+    <div class="card">
+      <h1>Beat Poe!</h1>
+      <p id="loadText">Loading the dictionary&hellip;</p>
+    </div>
+  </div>
+</main>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "beat-poe",
+  "version": "0.1.0",
+  "description": "Beat Poe! - a word-duel game against four authors",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "sim": "node tools/sim.mjs"
+  }
+}
