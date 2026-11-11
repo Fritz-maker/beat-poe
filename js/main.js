@@ -15,6 +15,7 @@ const S = {
   playerHp: L.PLAYER_MAX_HP,
   lives: 0,
   reveal: null,                   // result of the last play, for the last-word line
+  note: null,                     // { text, kind }: a short system note shown under the word tray
   totalPlays: 0, totalPerfect: 0,
   healed: 0,
 };
@@ -38,10 +39,16 @@ function saveSettings() {
 const tiles = [];
 let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0;
 
-function say(text, kind) {
+// What the foe says (the speech bubble on the stage).
+function say(text) {
   const m = $('msg');
   m.textContent = text;
-  m.className = 'msg small ' + (kind || '');
+  restartAnim(m, 'pop');
+}
+
+// A short system note under the word tray (shown while no word is being spelled).
+function note(text, kind) {
+  S.note = text ? { text, kind: kind || '' } : null;
 }
 
 function restartAnim(el, cls) {
@@ -68,6 +75,7 @@ function disarmScramble() {
   const b = $('btnScramble');
   b.classList.remove('armed');
   b.textContent = 'Scramble';
+  if (S.note && S.note.text.startsWith('Scramble gives')) { note(null); render(); }
 }
 
 const canAct = () => S.mode === 'fight' && S.phase === 'player';
@@ -87,21 +95,23 @@ function render() {
   $('foeFill').style.width = (100 * ehp / e.hp) + '%';
   $('foeHp').textContent = `${ehp} / ${e.hp}`;
 
-  const wave = $('wave');
-  if (f.waveIn <= 1) {
-    wave.textContent = `CURSE WAVE on the next foe turn! (${e.waveSize} tiles)`;
-    wave.className = 'small wave soon';
-  } else {
-    wave.textContent = `Curse wave in ${f.waveIn} foe turns (${e.waveSize} tiles)`;
-    wave.className = 'small wave';
+  // curse countdown: one bead per foe turn in the cycle, filling up as the wave gets closer
+  const soon = f.waveIn <= 1;
+  $('wave').className = 'wave' + (soon ? ' soon' : '');
+  $('wave').setAttribute('aria-label', `Curse wave in ${f.waveIn} foe turns, ${e.waveSize} tiles`);
+  $('waveText').textContent = soon ? `Curse next turn! (${e.waveSize})` : `Curse in ${f.waveIn}`;
+  const beads = $('beads');
+  if (beads.children.length !== e.waveEvery) {
+    beads.replaceChildren(...Array.from({ length: e.waveEvery }, () => document.createElement('i')));
   }
+  [...beads.children].forEach((b, k) => b.classList.toggle('on', k < e.waveEvery - f.waveIn));
 
   const php = Math.max(0, Math.ceil(S.playerHp));
   $('youFill').style.width = (100 * php / L.PLAYER_MAX_HP) + '%';
   $('youHp').textContent = `You ${php} / ${L.PLAYER_MAX_HP}`;
-  const lives = $('lives');
-  lives.textContent = `♥ ${S.lives}`;
-  lives.className = 'lives' + (S.lives > 0 ? ' has' : '');
+  $('livesNum').textContent = S.lives;
+  $('lives').className = 'lives' + (S.lives > 0 ? ' has' : '');
+  $('lives').setAttribute('aria-label', `${S.lives} bonus lives`);
 
   // tiles
   const order = new Map(S.sel.map((idx, k) => [idx, k + 1]));
@@ -123,13 +133,13 @@ function render() {
     w.textContent = S.phase === 'enemy' ? '…' : 'tap tiles to spell a word';
     w.className = 'word empty';
     w.style.fontSize = '';
-    info.textContent = '';
-    info.className = 'small';
+    info.textContent = S.note ? S.note.text : '';
+    info.className = 'small ' + (S.note ? S.note.kind : '');
   } else {
     const valid = word.length >= L.MIN_WORD && L.isWord(word);
     w.textContent = word;
     w.className = 'word' + (valid ? ' valid' : '');
-    w.style.fontSize = word.length > 9 ? Math.max(16, Math.floor(34 * 9 / word.length)) + 'px' : '';
+    w.style.fontSize = word.length > 9 ? Math.max(16, Math.floor(32 * 9 / word.length)) + 'px' : '';
     if (word.length < L.MIN_WORD) {
       info.textContent = ''; info.className = 'small';
     } else if (valid) {
@@ -160,9 +170,11 @@ function render() {
   } else {
     last.append(`You ${r.word} ${r.dmg} \u00b7 Best `);
     const b = document.createElement('b'); b.textContent = `${r.best.word} ${r.best.dmg}`;
-    last.append(b, ` \u00b7 missed by ${r.best.dmg - r.dmg}`);
+    last.append(b);
   }
-  $('btnCommon').textContent = L.commonOnly ? 'Best from: common' : 'Best from: all words';
+  $('btnShow').hidden = !(r && r.dmg < r.best.dmg);
+  $('setCommon').classList.toggle('on', L.commonOnly);
+  $('setAll').classList.toggle('on', !L.commonOnly);
 }
 
 function showOverlay(title, text, kind, button) {
@@ -177,6 +189,7 @@ function showOverlay(title, text, kind, button) {
 // Actions
 // ---------------------------------------------------------------------------
 function clearSel() { S.sel = []; S.lastQu = null; }
+const settingsOpen = () => !$('settings').hidden;
 
 function startFight(idx) {
   S.fight = L.newFight(idx);
@@ -187,7 +200,8 @@ function startFight(idx) {
   S.mode = 'fight';
   hideBanner(); disarmScramble();
   $('overlay').hidden = true;
-  say(`${S.fight.enemy.name} blocks the way!`, 'warn');
+  note(null);
+  say('Your move.');
   render();
   tiles.forEach((el) => restartAnim(el, 'fresh'));
 }
@@ -203,6 +217,7 @@ function toggleTile(i) {
   if (!canAct()) return;
   disarmScramble();
   S.lastQu = null;
+  note(null);
   const k = S.sel.indexOf(i);
   if (k >= 0) S.sel.splice(k, 1); else S.sel.push(i);
   render();
@@ -221,6 +236,7 @@ function typeLetter(ch) {
   // typing "qu" onto a Qu tile: the tile already spells QU, so the "u" is swallowed
   if (ch === 'U' && S.lastQu !== null && S.sel[S.sel.length - 1] === S.lastQu) { S.lastQu = null; return; }
   S.lastQu = null;
+  note(null);
   const pick = L.pickForLetter(S.fight.grid, new Set(S.sel), ch);
   if (!pick) return;
   S.sel.push(pick.index);
@@ -239,7 +255,7 @@ function submit() {
   disarmScramble();
   const f = S.fight;
   const res = L.playWord(f, S.sel);
-  if (!res.ok) { say(res.reason, 'warn'); return; }
+  if (!res.ok) { clearSel(); note(res.reason, 'invalid'); render(); return; }
 
   f.plays++; S.totalPlays++;
   const verdict = L.judge(res.dmg, res.best.dmg);
@@ -248,7 +264,7 @@ function submit() {
   S.reveal = res;
   clearSel();
 
-  say(`You: ${res.word} for ${res.dmg} damage.`, 'good');
+  note(`${res.word} hits for ${res.dmg}.`, 'good');
   if (verdict === 'perfect') {
     showBanner('life', 'BONUS LIFE!', `Perfect word! Lives saved for the final fight: ${S.lives}`);
   } else if (verdict === 'close') {
@@ -290,7 +306,9 @@ function scramble() {
   if (!b.classList.contains('armed')) {          // first tap arms, second tap confirms
     b.classList.add('armed');
     b.textContent = 'Tap again';
-    say('Scramble gives the foe a free hit. Tap again.', 'warn');
+    clearSel();
+    note('Scramble gives the foe a free hit. Tap again.', 'warn');
+    render();
     clearTimeout(scrambleTimer);
     scrambleTimer = setTimeout(disarmScramble, 3000);
     return;
@@ -305,7 +323,7 @@ function doScramble() {
   L.scramble(S.fight);
   S.reveal = null;
   hideBanner();
-  say('You scramble the grid. The foe gets a free swing.', 'warn');
+  note('Grid scrambled.', 'warn');
   beginEnemyPhase();
   render();
   tiles.forEach((el) => restartAnim(el, 'fresh'));
@@ -316,14 +334,13 @@ function enemyTurn() {
   const f = S.fight;
   const { dmg, replaced } = L.enemyAct(f);
   S.playerHp -= dmg;
-  let text = `${f.enemy.name} hits you for ${dmg}.`, kind = 'bad';
-  if (replaced) { text += `  CURSE WAVE! ${replaced.length} tiles turn to hard letters.`; kind = 'curse'; }
+  let text = `I hit you for ${dmg}.`;
+  if (replaced) text += ` And a curse wave: ${replaced.length} tiles turn to hard letters.`;
 
   if (S.playerHp <= 0 && S.lives > 0 && f.idx === L.ENEMIES.length - 1) {
     S.lives--;                                    // spend a bonus life in the final fight
     S.playerHp = Math.floor(L.PLAYER_MAX_HP * L.REVIVE_FRAC);
-    text = `${f.enemy.name} hits for ${dmg}. BONUS LIFE used! Back with ${S.playerHp} HP (${S.lives} left).`;
-    kind = 'warn';
+    text = `I hit for ${dmg}, but you spend a bonus life and come back with ${S.playerHp} HP. (${S.lives} left)`;
     S.phase = 'player';
   } else if (S.playerHp <= 0) {
     S.playerHp = 0;
@@ -334,7 +351,7 @@ function enemyTurn() {
   } else {
     S.phase = 'player';
   }
-  say(text, kind);
+  say(text);
   render();
   restartAnim($('youBox'), 'shake');
   if (replaced) replaced.forEach((i) => restartAnim(tiles[i], 'fresh'));
@@ -345,12 +362,24 @@ function advance() {
   else if (S.mode === 'defeat' || S.mode === 'won') startRun();
 }
 
-function toggleCommon() {
+function setCommon(on) {
   if (L.commonArr.length === 0) return;
-  L.commonOnly = !L.commonOnly;
+  L.commonOnly = on;
   saveSettings();
-  say(L.commonOnly ? 'Best-word check: common words only' : 'Best-word check: every valid word', 'warn');
   render();
+}
+function toggleCommon() {
+  setCommon(!L.commonOnly);
+  if (S.mode === 'fight' && S.sel.length === 0) {
+    note(L.commonOnly ? 'Best word: common words only' : 'Best word: every valid word', 'warn');
+    render();
+  }
+}
+function openSettings() { if (S.mode !== 'loading') $('settings').hidden = false; }
+function closeSettings() { $('settings').hidden = true; }
+function showMissed() {
+  // the missed-word review screen is not built yet
+  if (canAct() && S.sel.length === 0) { note('The missed-word review is coming soon.', 'warn'); render(); }
 }
 
 // ---------------------------------------------------------------------------
@@ -380,7 +409,12 @@ function wire() {
   $('btnClear').addEventListener('click', () => { if (canAct()) { clearSel(); render(); } });
   $('btnBack').addEventListener('click', removeLast);
   $('btnScramble').addEventListener('click', scramble);
-  $('btnCommon').addEventListener('click', toggleCommon);
+  $('btnGear').addEventListener('click', openSettings);
+  $('setCommon').addEventListener('click', () => setCommon(true));
+  $('setAll').addEventListener('click', () => setCommon(false));
+  $('setClose').addEventListener('click', closeSettings);
+  $('btnShow').addEventListener('click', showMissed);
+  $('msg').addEventListener('animationend', () => $('msg').classList.remove('pop'));
   $('ovBtn').addEventListener('click', advance);
   for (const id of ['foeBox', 'youBox']) {
     $(id).addEventListener('animationend', () => $(id).classList.remove('shake'));
@@ -391,6 +425,10 @@ function wire() {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === 'F2') { ev.preventDefault(); toggleCommon(); return; }
     if (S.mode === 'loading') return;
+    if (settingsOpen()) {
+      if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); closeSettings(); }
+      return;
+    }
     if (S.mode !== 'fight') {
       if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); advance(); }
       return;

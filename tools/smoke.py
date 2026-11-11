@@ -17,7 +17,7 @@ try:
     with sync_playwright() as p:
         b = p.chromium.launch(channel="chrome", headless=True)
         # ---- phone-sized, touch ----
-        for name, w, h in [("se-with-bars", 375, 548), ("small-android", 360, 640), ("iphone-14", 390, 844)]:
+        for name, w, h in [("se-with-bars", 375, 548), ("small-android", 360, 640), ("pixel-9a", 412, 763), ("iphone-14", 390, 844)]:
             ctx = b.new_context(viewport={"width": w, "height": h}, has_touch=True, is_mobile=True, device_scale_factor=2)
             page = ctx.new_page()
             logs = []
@@ -71,6 +71,11 @@ try:
             page.screenshot(path=f"shots/{name}-after-play.png")
             page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
             check(page.evaluate("() => beatPoe.S.playerHp") < 80, "foe hit back")
+            page.wait_for_timeout(500)
+            page.screenshot(path=f"shots/{name}-foe-hit.png")
+            if page.locator("#btnShow").is_visible():
+                page.locator("#btnShow").tap()
+                check("coming soon" in page.locator("#wordInfo").inner_text(), "Show me button answers")
             # bad word is refused and costs nothing
             turn = page.evaluate("() => beatPoe.S.fight.turn")
             page.evaluate("() => { const g = beatPoe.S.fight.grid; g[0].ch='X'; g[1].ch='Z'; g[2].ch='J'; g[0].qu=g[1].qu=g[2].qu=false; beatPoe.render(); }")
@@ -78,7 +83,21 @@ try:
             check("not in the word list" in page.locator("#wordInfo").inner_text(), "invalid word flagged")
             page.locator("#btnPlay").tap()
             check(page.evaluate("() => beatPoe.S.fight.turn") == turn, "invalid word does not use the turn")
-            page.locator("#btnClear").tap()
+            check("not in the word list" in page.locator("#wordInfo").inner_text(), "refused word is explained")
+            # stage pieces
+            st = page.evaluate("() => { const f = document.getElementById('face').getBoundingClientRect(), s = document.getElementById('foeBox').getBoundingClientRect(), b = document.getElementById('msg').getBoundingClientRect(); return {face: f.width, stage: s.height, bubbleBottom: b.bottom, stageBottom: s.bottom, bubble: document.getElementById('msg').textContent, beads: document.querySelectorAll('#beads i').length} }")
+            print("    stage", json.dumps(st))
+            check(st["face"] >= 70, f"face is big enough to read ({st['face']:.0f}px)")
+            check(st["bubbleBottom"] <= st["stageBottom"] + 1, "speech bubble fits inside the stage")
+            check(len(st["bubble"]) > 0 and st["beads"] == 4, "bubble has text and Twain has 4 countdown beads")
+            # settings via the gear
+            page.locator("#btnGear").tap()
+            page.locator("#setAll").tap()
+            check(page.evaluate("() => beatPoe.L.commonOnly") is False, "settings: All words")
+            page.screenshot(path=f"shots/{name}-settings.png")
+            page.locator("#setCommon").tap()
+            page.locator("#setClose").tap()
+            check(page.evaluate("() => beatPoe.L.commonOnly && document.getElementById('settings').hidden"), "settings: back to Common words and closed")
             # scramble needs two taps
             page.locator("#btnScramble").tap()
             check(page.evaluate("() => beatPoe.S.fight.turn") == turn, "first Scramble tap only arms")
@@ -149,13 +168,13 @@ try:
         check(page.evaluate("() => beatPoe.S.fight.hp") == hp0 - 7, "Enter plays QUIT with a Qu tile for 7")
         page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
         page.screenshot(path="shots/desktop.png")
-        before = page.locator("#btnCommon").inner_text()
+        before = page.evaluate("() => beatPoe.L.commonOnly")
         page.keyboard.press("F2")
-        after = page.locator("#btnCommon").inner_text()
+        after = page.evaluate("() => beatPoe.L.commonOnly")
         check(before != after, f"F2 toggles the best-word list ({before} -> {after})")
         page.reload()
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
-        check(page.locator("#btnCommon").inner_text() == after, "the setting survives a reload (localStorage)")
+        check(page.evaluate("() => beatPoe.L.commonOnly") == after, "the setting survives a reload (localStorage)")
         t = page.evaluate("() => beatPoe.S.fight.turn")
         page.keyboard.press("Tab")
         check(page.evaluate("() => beatPoe.S.fight.turn") == t + 1, "Tab scrambles")
