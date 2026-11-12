@@ -73,9 +73,27 @@ try:
             check(page.evaluate("() => beatPoe.S.playerHp") < 80, "foe hit back")
             page.wait_for_timeout(500)
             page.screenshot(path=f"shots/{name}-foe-hit.png")
-            if page.locator("#btnShow").is_visible():
-                page.locator("#btnShow").tap()
-                check("coming soon" in page.locator("#wordInfo").inner_text(), "Show me button answers")
+            # ---- missed-word review ----
+            page.evaluate("""() => { const f = beatPoe.S.fight; f.waveIn = 9; 'R A I N E T S O Qu D L U Z E K C'.split(' ').forEach((c, i) => { f.grid[i] = c === 'Qu' ? {ch:'Q', qu:true, cursed:false} : {ch:c, qu:false, cursed: c === 'Z' || c === 'K'}; }); beatPoe.render(); }""")
+            for i in (0, 1, 2, 3): page.locator(".tile").nth(i).tap()      # RAIN
+            page.locator("#btnPlay").tap()
+            page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
+            check(page.locator("#btnShow").is_visible(), "Show me appears after a miss")
+            page.locator("#btnShow").tap()
+            rv = page.evaluate("""() => { const cols = [...document.querySelectorAll('#review .rv-col')]; const info = (c) => ({tiles: c.querySelectorAll('.rv-tile').length, lit: [...c.querySelectorAll('.rv-tile.on')].map(t => [t.firstChild.textContent, +t.querySelector('.ord').textContent]).sort((a, b) => a[1] - b[1]), word: c.querySelector('.rv-word').textContent, sub: c.querySelector('.rv-sub').textContent});
+               const b = document.getElementById('reviewClose').getBoundingClientRect(), r = document.getElementById('review').getBoundingClientRect();
+               return {open: !document.getElementById('review').hidden, mine: info(cols[0]), best: info(cols[1]), btnBottom: b.bottom, innerH: innerHeight, top: r.top, stageBottom: document.getElementById('foeBox').getBoundingClientRect().bottom, bw: beatPoe.S.reveal.best.word, bd: beatPoe.S.reveal.best.dmg} }""")
+            spell = lambda lit: "".join(t[0].upper() for t in lit)
+            check(rv["open"] and rv["mine"]["tiles"] == 16 and rv["best"]["tiles"] == 16, "review shows two copies of the old grid")
+            check(spell(rv["mine"]["lit"]) == "RAIN" and rv["mine"]["word"] == "RAIN", "your tiles are lit in the order you played them")
+            check(spell(rv["best"]["lit"]) == rv["bw"] and rv["best"]["word"] == rv["bw"], f"best word's tiles are lit and numbered in order ({rv['bw']})")
+            check([t[1] for t in rv["best"]["lit"]] == list(range(1, len(rv["best"]["lit"]) + 1)), "numbers run 1..n")
+            check(str(rv["bd"]) in rv["best"]["sub"] and "letters" in rv["best"]["sub"], f"the sum is shown ({rv['best']['sub']})")
+            check(rv["btnBottom"] <= rv["innerH"] and rv["top"] >= rv["stageBottom"] - 8, "review fits on screen below the stage")
+            page.screenshot(path=f"shots/{name}-review.png")
+            turn = page.evaluate("() => beatPoe.S.fight.turn")
+            page.locator("#reviewClose").tap()
+            check(page.evaluate("() => document.getElementById('review').hidden && beatPoe.S.fight.turn") == turn, "Got it closes the review without using a turn")
             # bad word is refused and costs nothing
             turn = page.evaluate("() => beatPoe.S.fight.turn")
             page.evaluate("() => { const g = beatPoe.S.fight.grid; g[0].ch='X'; g[1].ch='Z'; g[2].ch='J'; g[0].qu=g[1].qu=g[2].qu=false; beatPoe.render(); }")
@@ -99,6 +117,11 @@ try:
             check(page.evaluate("() => beatPoe.L.commonOnly") is False, "settings: All words")
             page.screenshot(path=f"shots/{name}-settings.png")
             page.locator("#setCommon").tap()
+            page.locator("#setReviewOff").tap()
+            check(page.evaluate("() => beatPoe.S.showReview === false && JSON.parse(localStorage.getItem('beatpoe.settings')).showReview === false"), "settings: review switched off and saved")
+            check(page.evaluate("() => document.getElementById('btnShow').hidden"), "with the review off, the Show me button is gone")
+            page.locator("#setReviewOn").tap()
+            check(page.evaluate("() => !document.getElementById('btnShow').hidden"), "switching it back on brings the button back")
             page.locator("#setClose").tap()
             check(page.evaluate("() => beatPoe.L.commonOnly && document.getElementById('settings').hidden"), "settings: back to Common words and closed")
             # scramble needs two taps

@@ -32,6 +32,7 @@ const S = {
   lives: 0,
   foeCross: false,                // the foe has just been beaten and is showing the cross face
   overlayReady: false,            // the result card is up and can be dismissed
+  showReview: true,               // setting: offer the "Show me" button after a miss
   reveal: null,                   // result of the last play, for the last-word line
   note: null,                     // { text, kind }: a short system note shown under the word tray
   totalPlays: 0, totalPerfect: 0,
@@ -45,10 +46,11 @@ function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
     if (typeof s.commonOnly === 'boolean') L.commonOnly = s.commonOnly;
+    if (typeof s.showReview === 'boolean') S.showReview = s.showReview;
   } catch (e) { /* private mode or blocked storage: just use defaults */ }
 }
 function saveSettings() {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ commonOnly: L.commonOnly })); } catch (e) { /* ignore */ }
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ commonOnly: L.commonOnly, showReview: S.showReview })); } catch (e) { /* ignore */ }
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +234,9 @@ function render() {
     const b = document.createElement('b'); b.textContent = `${r.best.word} ${r.best.dmg}`;
     last.append(b);
   }
-  $('btnShow').hidden = !(r && r.dmg < r.best.dmg);
+  $('btnShow').hidden = !(S.showReview && r && r.best.word && r.dmg < r.best.dmg);
+  $('setReviewOn').classList.toggle('on', S.showReview);
+  $('setReviewOff').classList.toggle('on', !S.showReview);
   $('setCommon').classList.toggle('on', L.commonOnly);
   $('setAll').classList.toggle('on', !L.commonOnly);
 }
@@ -474,10 +478,59 @@ function toggleCommon() {
 }
 function openSettings() { if (S.mode !== 'loading') $('settings').hidden = false; }
 function closeSettings() { $('settings').hidden = true; }
-function showMissed() {
-  // the missed-word review screen is not built yet
-  if (canAct() && S.sel.length === 0) { note('The missed-word review is coming soon.', 'warn'); render(); }
+// ---------------------------------------------------------------------------
+// Missed-word review: the grid as it was, with the best word marked and numbered.
+// ---------------------------------------------------------------------------
+function miniGrid(before, tilesInOrder) {
+  const order = new Map(tilesInOrder.map((idx, k) => [idx, k + 1]));
+  const grid = document.createElement('div');
+  grid.className = 'rv-grid';
+  before.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'rv-tile' + (t.cursed ? ' cursed' : '') + (order.has(i) ? ' on' : '');
+    el.textContent = L.tileLabel(t);
+    if (order.has(i)) {
+      const n = document.createElement('span'); n.className = 'ord'; n.textContent = order.get(i);
+      el.append(n);
+    }
+    grid.append(el);
+  });
+  return grid;
 }
+
+function reviewColumn(title, cls, grid, word, dmg) {
+  const col = document.createElement('div');
+  col.className = 'rv-col ' + cls;
+  const h = document.createElement('h2'); h.textContent = title;
+  const w = document.createElement('div'); w.className = 'rv-word'; w.textContent = word;
+  if (word.length > 8) w.style.fontSize = Math.max(11, Math.floor(20 * 8 / word.length)) + 'px';   // keep long words on one line
+  const sub = document.createElement('div'); sub.className = 'rv-sub';
+  sub.textContent = `${word.length} letters \u00d7${L.lengthMult(word.length).toFixed(2)} = ${dmg}`;
+  col.append(h, grid, w, sub);
+  return col;
+}
+
+function showMissed() {
+  const r = S.reveal;
+  if (!canAct() || !r || r.dmg >= r.best.dmg || !r.best.word) return;   // only on your own turn
+  const body = $('reviewBody');
+  body.replaceChildren();
+  const cols = document.createElement('div');
+  cols.className = 'rv-cols';
+  cols.append(reviewColumn('You played', 'mine', miniGrid(r.before, r.used), r.word, r.dmg),
+              reviewColumn('Best word', 'best', miniGrid(r.before, r.best.tiles), r.best.word, r.best.dmg));
+  const gap = document.createElement('p'); gap.className = 'rv-gap';
+  gap.append('Missed by ');
+  const b = document.createElement('b'); b.textContent = `${r.best.dmg - r.dmg} damage`;
+  gap.append(b, L.commonOnly ? ' (best common word)' : ' (best of all words)');
+  body.append(cols, gap);
+  const app = $('app').getBoundingClientRect();
+  $('review').style.top = Math.round(document.querySelector('.wall').getBoundingClientRect().bottom - app.top) + 'px';
+  $('review').hidden = false;
+}
+function closeReview() { $('review').hidden = true; }
+const reviewOpen = () => !$('review').hidden;
+
 
 // ---------------------------------------------------------------------------
 // Wiring
@@ -511,6 +564,9 @@ function wire() {
   $('setAll').addEventListener('click', () => setCommon(false));
   $('setClose').addEventListener('click', closeSettings);
   $('btnShow').addEventListener('click', showMissed);
+  $('reviewClose').addEventListener('click', closeReview);
+  $('setReviewOn').addEventListener('click', () => { S.showReview = true; saveSettings(); render(); });
+  $('setReviewOff').addEventListener('click', () => { S.showReview = false; saveSettings(); render(); });
   $('msg').addEventListener('animationend', () => $('msg').classList.remove('pop'));
   $('faceImg').addEventListener('animationend', () => $('faceImg').classList.remove('cross-in'));
   $('ovBtn').addEventListener('click', advance);
@@ -526,6 +582,10 @@ function wire() {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (ev.key === 'F2') { ev.preventDefault(); toggleCommon(); return; }
     if (S.mode === 'loading') return;
+    if (reviewOpen()) {                            // the fight waits while the review is open
+      if (ev.key === 'Escape' || ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); closeReview(); }
+      return;
+    }
     if (settingsOpen()) {
       if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); closeSettings(); }
       return;

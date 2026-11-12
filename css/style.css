@@ -259,7 +259,31 @@ button.chip[hidden] { display: none; }
 .card.panel .hint { margin: 10px 0 18px; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .seg button { padding: 0 8px; }
+.seg + .label, .hint + .label { margin-top: 4px; }
 .seg button.on { background: #4a3605; border-color: var(--warn); color: var(--tile-sel); }
+
+/* ---- missed-word review ---- */
+#review { align-items: flex-start; padding: 10px; }
+#review .card.panel { max-width: none; padding: 14px 12px; }
+#review h1 { margin-bottom: 10px; }
+.rv-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rv-col h2 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 1px; }
+.rv-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; container-type: inline-size; }
+.rv-tile {
+  position: relative; aspect-ratio: 1; border-radius: var(--tile-radius, 14%);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--tile); color: var(--ink); opacity: 0.32;
+  font-family: var(--font-tile, inherit); font-weight: var(--tile-weight, 800); font-size: 11cqw;
+}
+.rv-tile.cursed { background: var(--curse); color: #fff; }
+.rv-tile.on { opacity: 1; background: var(--tile-sel); color: var(--ink); box-shadow: 0 2px 0 rgba(0, 0, 0, 0.45); }
+.rv-tile.on.cursed { background: var(--curse-sel, #9b4fd0); color: #fff; }
+.rv-tile .ord { position: absolute; left: 8%; top: 3%; font: 700 6cqw system-ui, sans-serif; }
+.rv-word { margin-top: 8px; font-family: var(--font-tile, inherit); font-weight: var(--tile-weight, 800); font-size: 20px; line-height: 1.15; color: var(--text); white-space: nowrap; }
+.rv-col.best .rv-word { color: var(--warn); }
+.rv-sub { font-size: 13px; color: var(--dim); }
+.rv-gap { margin: 12px 0 14px; font-size: 14px; }
+.rv-gap b { color: var(--warn); }
 
 /* short screens (small phones with browser bars showing): tighten everything */
 @media (max-height: 660px) {
