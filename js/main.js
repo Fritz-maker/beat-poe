@@ -5,6 +5,12 @@ const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = 'beatpoe.settings';
 const ENEMY_DELAY = 700;          // ms pause before the foe hits back
 const BANNER_MS = { life: 3800, close: 2400 };
+const RESULT_DELAY = 1500;        // ms the defeated foe's cross face is shown before the result card
+
+// Portraits: one calm and one cross picture per foe (foes without art get the placeholder).
+const FACES = {
+  twain: { normal: 'art/twain-normal.webp', cross: 'art/twain-cross.webp', sore: 'Hmph. Beginner\u2019s luck.' },
+};
 
 const S = {
   mode: 'loading',                // loading | fight | victory | defeat | won
@@ -14,6 +20,8 @@ const S = {
   lastQu: null,                   // a Qu tile just picked by typing "q" (the next "u" is swallowed)
   playerHp: L.PLAYER_MAX_HP,
   lives: 0,
+  foeCross: false,                // the foe has just been beaten and is showing the cross face
+  overlayReady: false,            // the result card is up and can be dismissed
   reveal: null,                   // result of the last play, for the last-word line
   note: null,                     // { text, kind }: a short system note shown under the word tray
   totalPlays: 0, totalPerfect: 0,
@@ -37,7 +45,7 @@ function saveSettings() {
 // Small UI helpers
 // ---------------------------------------------------------------------------
 const tiles = [];
-let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0;
+let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0, resultTimer = 0;
 
 // What the foe says (the speech bubble on the stage).
 function say(text) {
@@ -90,6 +98,16 @@ function render() {
   const e = f.enemy;
 
   $('foeName').textContent = e.name;
+  const art = FACES[e.id];
+  const img = $('faceImg');
+  $('face').classList.toggle('art', !!art);
+  $('facePlaceholder').toggleAttribute('hidden', !!art);
+  img.hidden = !art;
+  if (art) {
+    const want = S.foeCross ? art.cross : art.normal;
+    if (img.getAttribute('src') !== want) img.src = want;
+    img.alt = `${e.name}${S.foeCross ? ', cross' : ''}`;
+  }
   $('foeCount').textContent = `Foe ${f.idx + 1} of ${L.ENEMIES.length}`;
   const ehp = Math.max(0, Math.ceil(f.hp));
   $('foeFill').style.width = (100 * ehp / e.hp) + '%';
@@ -178,6 +196,11 @@ function render() {
 }
 
 function showOverlay(title, text, kind, button) {
+  // the card covers the board but leaves the stage (and the foe's face) in view
+  const app = $('app').getBoundingClientRect();
+  $('overlay').style.top = Math.round(document.querySelector('.wall').getBoundingClientRect().bottom - app.top) + 'px';
+  S.overlayReady = true;
+  hideBanner();
   $('ovTitle').textContent = title;
   $('ovTitle').className = kind;
   $('ovText').textContent = text;
@@ -198,6 +221,11 @@ function startFight(idx) {
   S.reveal = null;
   S.phase = 'player';
   S.mode = 'fight';
+  S.foeCross = false;
+  S.overlayReady = false;
+  clearTimeout(resultTimer);
+  const art = FACES[S.fight.enemy.id];
+  if (art) new Image().src = art.cross;           // fetch the cross face now so the swap is instant
   hideBanner(); disarmScramble();
   $('overlay').hidden = true;
   note(null);
@@ -279,19 +307,27 @@ function submit() {
     const heal = Math.floor(L.PLAYER_MAX_HP * L.HEAL_BETWEEN);
     S.playerHp = Math.min(L.PLAYER_MAX_HP, S.playerHp + heal);
     S.healed = heal;
+    const last = f.idx >= L.ENEMIES.length - 1;
+    if (last) S.mode = 'won';
+    // the beaten foe turns cross; the result card follows after a beat
+    S.foeCross = true;
+    const art = FACES[f.enemy.id];
+    say(art ? art.sore : 'You win this round.');
     render();
     restartAnim($('foeBox'), 'shake');
-    const last = f.idx >= L.ENEMIES.length - 1;
-    if (last) {
-      S.mode = 'won';
-      showOverlay('You beat Poe!',
-        `Best-word hits this run: ${S.totalPerfect} / ${S.totalPlays}\nLongest word: ${f.longest}`,
-        'warn', 'Play again');
-    } else {
-      showOverlay(`${f.enemy.name} is defeated!`,
-        `You recovered ${heal} HP.\nLongest word: ${f.longest}\nBest-word hits: ${f.perfect} / ${f.plays}`,
-        'good', 'Next foe');
-    }
+    if (art) restartAnim($('faceImg'), 'cross-in');
+    clearTimeout(resultTimer);
+    resultTimer = setTimeout(() => {
+      if (last) {
+        showOverlay('You beat Poe!',
+          `Best-word hits this run: ${S.totalPerfect} / ${S.totalPlays}\nLongest word: ${f.longest}`,
+          'warn', 'Play again');
+      } else {
+        showOverlay(`${f.enemy.name} is defeated!`,
+          `You recovered ${heal} HP.\nLongest word: ${f.longest}\nBest-word hits: ${f.perfect} / ${f.plays}`,
+          'good', 'Next foe');
+      }
+    }, RESULT_DELAY);
     return;
   }
   beginEnemyPhase();
@@ -358,6 +394,7 @@ function enemyTurn() {
 }
 
 function advance() {
+  if (!S.overlayReady) return;                    // the result card is not up yet
   if (S.mode === 'victory') startFight(S.fight.idx + 1);
   else if (S.mode === 'defeat' || S.mode === 'won') startRun();
 }
@@ -415,6 +452,7 @@ function wire() {
   $('setClose').addEventListener('click', closeSettings);
   $('btnShow').addEventListener('click', showMissed);
   $('msg').addEventListener('animationend', () => $('msg').classList.remove('pop'));
+  $('faceImg').addEventListener('animationend', () => $('faceImg').classList.remove('cross-in'));
   $('ovBtn').addEventListener('click', advance);
   for (const id of ['foeBox', 'youBox']) {
     $(id).addEventListener('animationend', () => $(id).classList.remove('shake'));

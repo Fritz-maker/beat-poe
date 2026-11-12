@@ -88,6 +88,9 @@ try:
             st = page.evaluate("() => { const f = document.getElementById('face').getBoundingClientRect(), s = document.getElementById('foeBox').getBoundingClientRect(), b = document.getElementById('msg').getBoundingClientRect(); return {face: f.width, stage: s.height, bubbleBottom: b.bottom, stageBottom: s.bottom, bubble: document.getElementById('msg').textContent, beads: document.querySelectorAll('#beads i').length} }")
             print("    stage", json.dumps(st))
             check(st["face"] >= 70, f"face is big enough to read ({st['face']:.0f}px)")
+            fi = page.evaluate("() => { const i = document.getElementById('faceImg'), r = i.getBoundingClientRect(); return {src: i.getAttribute('src'), ok: i.complete && i.naturalWidth > 0, h: r.height, hidden: i.hidden, ph: document.getElementById('facePlaceholder').hasAttribute('hidden')} }")
+            check(fi["ok"] and not fi["hidden"] and fi["ph"] and fi["src"].endswith("twain-normal.webp"), "Twain's calm portrait is showing")
+            check(abs(fi["h"] - st["stage"]) < 1.5, f"portrait fills the stage height ({fi['h']:.0f}px)")
             check(st["bubbleBottom"] <= st["stageBottom"] + 1, "speech bubble fits inside the stage")
             check(len(st["bubble"]) > 0 and st["beads"] == 4, "bubble has text and Twain has 4 countdown beads")
             # settings via the gear
@@ -126,7 +129,20 @@ try:
                 if cond and key not in shots:
                     shots.add(key); page.screenshot(path=f"shots/run-{key}.png")
             if st["mode"] == "victory":
-                page.locator("#ovBtn").tap(); continue
+                if st["idx"] == 0:
+                    src = page.evaluate("() => document.getElementById('faceImg').getAttribute('src')")
+                    check(src.endswith("twain-cross.webp"), "beaten Twain turns cross")
+                    check(page.evaluate("() => document.getElementById('overlay').hidden"), "result card waits while the cross face shows")
+                    page.wait_for_timeout(700); page.screenshot(path="shots/run-twain-cross.png")
+                    page.locator("#ovBtn").wait_for(state="visible"); page.wait_for_timeout(200)
+                    page.screenshot(path="shots/run-twain-card.png")
+                    vis = page.evaluate("() => document.getElementById('overlay').getBoundingClientRect().top >= document.getElementById('foeBox').getBoundingClientRect().bottom")
+                    check(vis, "result card leaves the stage visible")
+                page.locator("#ovBtn").tap()
+                if st["idx"] == 0:
+                    page.wait_for_function("beatPoe.S.mode === 'fight'")
+                    check(page.evaluate("() => document.getElementById('faceImg').hidden && !document.getElementById('facePlaceholder').hasAttribute('hidden')"), "Dickinson still shows the placeholder")
+                continue
             if st["mode"] in ("won", "defeat"):
                 outcome = st["mode"]; break
             if st["phase"] != "player":

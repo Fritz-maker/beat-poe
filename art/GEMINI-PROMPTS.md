@@ -1,9 +1,14 @@
-# Gemini prompts for the Twain bake-off
+# Gemini prompts for the author portraits
 
-Make the two pictures in ONE Gemini chat, in this order, so the second is an
-edit of the first and the face stays the same.
+Make each author's two pictures in ONE Gemini chat, calm first, so the cross
+picture is an edit of the calm one and the face stays the same.
 
-Save them into this folder as `twain-normal.png` and `twain-cross.png`.
+Then cut each download out of its background and shrink it for the game:
+
+    python3 tools/cutout.py ~/Downloads/<the download>.jpeg art/twain-normal.webp
+    python3 tools/cutout.py ~/Downloads/<the download>.jpeg art/twain-cross.webp
+
+# Mark Twain
 
 ## 1. Normal
 

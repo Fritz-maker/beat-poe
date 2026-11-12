@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#17121a">
 <title>Beat Poe!</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23dbc494'/%3E%3Ctext x='16' y='24' font-size='22' font-weight='800' font-family='sans-serif' text-anchor='middle' fill='%23332114'%3EP%3C/text%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <main id="app" class="loading">
@@ -14,8 +14,9 @@
   <!-- the stage: the foe's face and what the foe says -->
   <section class="stage" id="foeBox">
     <div class="face" id="face">
-      <!-- placeholder bust: each author's caricature goes here -->
-      <svg role="img" aria-label="Placeholder for the foe's face" viewBox="0 0 100 100">
+      <img id="faceImg" alt="" hidden>
+      <!-- placeholder bust, shown for foes that have no portrait yet -->
+      <svg id="facePlaceholder" role="img" aria-label="Placeholder for the foe's face" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r="48" fill="#17121a" stroke="#594761" stroke-width="2"/>
         <circle cx="50" cy="40" r="17" fill="none" stroke="#9e948c" stroke-width="2.5"/>
         <path d="M20 86c4-20 16-28 30-28s26 8 30 28" fill="none" stroke="#9e948c" stroke-width="2.5" stroke-linecap="round"/>
@@ -106,6 +107,6 @@
     </div>
   </div>
 </main>
-<script type="module" src="js/main.js?v=2"></script>
+<script type="module" src="js/main.js?v=3"></script>
 </body>
 </html>

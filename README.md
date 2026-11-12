@@ -30,6 +30,7 @@ The game must be opened through a web server (not by double-clicking index.html)
 - `test/` - rule tests: `node --test`
 - `tools/sim.mjs` - balance bots: `node tools/sim.mjs`
 - `tools/make-trace.mjs` + `tools/parity_lua.py` - check the JS rules against the original Lua
+- `tools/cutout.py` - cuts a portrait out of its flat background: `python3 tools/cutout.py picture.jpeg art/name.webp`
 - `tools/smoke.py` - headless-browser test of the UI (needs Python Playwright and Chrome)
 
 ## Word lists
@@ -37,5 +38,10 @@ The game must be opened through a web server (not by double-clicking index.html)
 - `words.txt` comes from the `word-list` npm package (MIT, Sindre Sorhus).
 - `common.txt` is `words.txt` filtered with word frequencies from `wordfreq`
   (Robyn Speer; data under CC BY-SA 4.0, which includes SUBTLEX data by Marc Brysbaert et al.).
+
+## Art
+
+Author portraits in `art/` were generated with Google Gemini from the prompts in
+`art/GEMINI-PROMPTS.md`, then cut out and shrunk with `tools/cutout.py`.
 
 Full license and attribution files come with the published version.
