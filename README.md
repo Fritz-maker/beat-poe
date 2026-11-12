@@ -1,58 +1,65 @@
-# Beat Poe! (skeleton)
+# Beat Poe!
 
-A word duel against four authors: Mark Twain, Emily Dickinson, Mary Shelley, and
-Edgar Allan Poe. Spell the longest, highest-value words to beat each one before
-they beat you. This is the plain playable skeleton: no author art, themes, or
-popups yet.
+A word duel against four authors. Spell the longest, highest-value words you
+can to beat Mark Twain, Emily Dickinson and Mary Shelley, then face Edgar Allan Poe.
 
-## Play it
+**Play it: https://fritz-maker.github.io/beat-poe/**
 
-The game must be opened through a web server (not by double-clicking index.html):
+It is made for phones (portrait, tap to play) and also works on a desktop with
+a keyboard. On a phone, use your browser's "Add to Home screen" to install it;
+after the first visit it also works offline.
 
-    cd beat-poe
+## How to play
+
+- Tap tiles in any order to spell a word of 3 or more letters, then tap **Play**.
+  Tap a picked tile again to put it back.
+- Long words hit much harder than short ones, and rare letters are worth more.
+- After each word the author hits back. Every few turns a **curse wave** turns
+  some tiles into hard letters; the beads under the author's health bar count down to it.
+- **Scramble** deals a fresh grid and clears curses, but costs your turn.
+- Play the best word the grid allows and you earn a **bonus life**. Lives are
+  saved for the final fight with Poe, where each one brings you back from defeat.
+- Missed the best word? **Show me** displays the grid as it was, with the best
+  word marked in order.
+- The gear opens Settings: whether "best word" means common words or every
+  valid word, and whether to offer Show me.
+
+Desktop keys: type letters, Enter = play, Backspace = undo, Esc = clear,
+Tab = scramble, F2 = switch the best-word list.
+
+## Run it on your own computer
+
+The game has to be opened through a web server, not by double-clicking index.html:
+
     python3 -m http.server 8000
 
-- On this computer: open http://localhost:8000
-- On a phone on the same wifi: run `hostname -I`, then open `http://<first address>:8000`
+Then open http://localhost:8000
 
-## Controls
+## For developers
 
-- Phone: tap tiles in any order, then Play. Tap a picked tile to remove it.
-  Scramble needs two taps (it costs your turn).
-- Desktop: type letters, Enter = play, Backspace = undo, Esc = clear,
-  Tab = scramble, F2 = switch the best-word list.
+No build step and no dependencies: plain HTML, CSS and JavaScript modules.
 
-## Files
+| Path | What it is |
+|---|---|
+| `js/logic.js` | The rules, with the tuning knobs (foe stats, letter values, curse settings) at the top |
+| `js/lines.js` | What each author says at each game moment, with the source of every genuine quotation |
+| `js/main.js` | The interface |
+| `css/style.css`, `css/themes.css` | Layout, and one colour-and-font theme per author |
+| `data/` | Word lists: every playable word, and the common words used for the best-word check |
+| `art/`, `fonts/`, `icons/` | Portraits, typefaces and app icons |
+| `sw.js`, `manifest.webmanifest` | Offline play and add-to-home-screen |
+| `love/` | The original desktop game (Lua, LÖVE) that this grew out of |
+| `test/` | Rule tests: `node --test` |
+| `tools/` | Balance bots (`sim.mjs`), the Lua parity check, the portrait cut-out script, and a headless-browser test |
 
-- `js/logic.js` - pure rules, tuning knobs at the top (ported from the LÖVE version's logic.lua)
-- `js/main.js`  - the UI
-- `js/lines.js` - what each foe says at each game moment, with the source of every genuine quotation
-- `css/themes.css` - one colour-and-font theme per foe
-- `data/words.txt` - every playable word; `data/common.txt` - common words for the best-word check
-- `test/` - rule tests: `node --test`
-- `tools/sim.mjs` - balance bots: `node tools/sim.mjs`
-- `tools/make-trace.mjs` + `tools/parity_lua.py` - check the JS rules against the original Lua
-- `tools/cutout.py` - cuts a portrait out of its flat background: `python3 tools/cutout.py picture.jpeg art/name.webp`
-- `tools/smoke.py` - headless-browser test of the UI (needs Python Playwright and Chrome)
+When you add or rename files in `css/`, `js/`, `art/`, `fonts/`, `data/` or
+`icons/`, add them to the list in `sw.js` and change its `CACHE` name.
 
-## Word lists
+## Credits and licenses
 
-- `words.txt` comes from the `word-list` npm package (MIT, Sindre Sorhus).
-- `common.txt` is `words.txt` filtered with word frequencies from `wordfreq`
-  (Robyn Speer; data under CC BY-SA 4.0, which includes SUBTLEX data by Marc Brysbaert et al.).
+Beat Poe! is by Wardo Studio. The game's own code is under the MIT license
+(see `LICENSE`). The word lists, fonts and portraits come from other sources
+and keep their own terms: see `ATTRIBUTIONS.md`.
 
-## Art
-
-Author portraits in `art/` were generated with Google Gemini from the prompts in
-`art/GEMINI-PROMPTS.md`, then cut out and shrunk with `tools/cutout.py`.
-
-## Fonts
-
-Each foe has its own typefaces, hosted in `fonts/` (no outside requests). Licenses are in `fonts/licenses/`.
-
-- Mark Twain: Rye, Alfa Slab One (SIL Open Font License 1.1)
-- Emily Dickinson: Cormorant Garamond (SIL Open Font License 1.1)
-- Mary Shelley: Pirata One (SIL Open Font License 1.1), Special Elite (Apache License 2.0)
-- Edgar Allan Poe: IM Fell English SC (SIL Open Font License 1.1)
-
-Full license and attribution files come with the published version.
+The authors' genuine lines are quotations from their public-domain works; the
+rest are original lines written in their voices.

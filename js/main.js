@@ -626,6 +626,11 @@ async function boot() {
   startRun();
 }
 
+// Offline play and add-to-home-screen (needs https or localhost; silently skipped elsewhere).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
 // handy for testing from the browser console
 window.beatPoe = { S, L, LINES, render };
 
