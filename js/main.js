@@ -113,6 +113,7 @@ function render() {
   const e = f.enemy;
 
   $('foeName').textContent = e.name;
+  document.body.dataset.foe = e.id;                // picks this foe's colours and fonts (css/themes.css)
   const art = faceOf(e.id);
   const img = $('faceImg');
   $('face').classList.toggle('art', !!art);

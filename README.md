@@ -26,6 +26,7 @@ The game must be opened through a web server (not by double-clicking index.html)
 
 - `js/logic.js` - pure rules, tuning knobs at the top (ported from the LÖVE version's logic.lua)
 - `js/main.js`  - the UI
+- `css/themes.css` - one colour-and-font theme per foe
 - `data/words.txt` - every playable word; `data/common.txt` - common words for the best-word check
 - `test/` - rule tests: `node --test`
 - `tools/sim.mjs` - balance bots: `node tools/sim.mjs`
@@ -43,5 +44,14 @@ The game must be opened through a web server (not by double-clicking index.html)
 
 Author portraits in `art/` were generated with Google Gemini from the prompts in
 `art/GEMINI-PROMPTS.md`, then cut out and shrunk with `tools/cutout.py`.
+
+## Fonts
+
+Each foe has its own typefaces, hosted in `fonts/` (no outside requests). Licenses are in `fonts/licenses/`.
+
+- Mark Twain: Rye, Alfa Slab One (SIL Open Font License 1.1)
+- Emily Dickinson: Cormorant Garamond (SIL Open Font License 1.1)
+- Mary Shelley: Pirata One (SIL Open Font License 1.1), Special Elite (Apache License 2.0)
+- Edgar Allan Poe: IM Fell English SC (SIL Open Font License 1.1)
 
 Full license and attribution files come with the published version.

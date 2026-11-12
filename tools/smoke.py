@@ -145,6 +145,8 @@ try:
                     page.wait_for_function("!document.getElementById('facePlaceholder').hasAttribute('hidden') || !document.getElementById('faceImg').hidden", timeout=3000)
                     src = page.evaluate("() => document.getElementById('faceImg').hidden ? 'placeholder' : document.getElementById('faceImg').getAttribute('src')")
                     check(src == "placeholder" or src.endswith("dickinson-normal.webp"), f"second foe shows {src}")
+                    th = page.evaluate("async () => { await document.fonts.ready; const cs = getComputedStyle(document.body); return {foe: document.body.dataset.foe, bg: cs.getPropertyValue('--bg').trim(), font: document.fonts.check('20px \"Cormorant Garamond\"'), tileFont: getComputedStyle(document.querySelector('.tile')).fontFamily} }")
+                    check(th["foe"] == "dickinson" and th["bg"] == "#141c17" and th["font"] and "Cormorant" in th["tileFont"], f"Dickinson's theme and font are applied {th}")
                 continue
             if st["mode"] in ("won", "defeat"):
                 outcome = st["mode"]; break

@@ -1,0 +1,69 @@
+/* Beat Poe! - one theme per foe. The game sets <body data-foe="twain"> etc. */
+@font-face { font-family: "Rye"; src: url("../fonts/rye-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Alfa Slab One"; src: url("../fonts/alfa-slab-one-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Cormorant Garamond"; font-weight: 700; src: url("../fonts/cormorant-garamond-latin-700-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Cormorant Garamond"; font-weight: 600; font-style: italic; src: url("../fonts/cormorant-garamond-latin-600-italic.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Pirata One"; src: url("../fonts/pirata-one-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "Special Elite"; src: url("../fonts/special-elite-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+@font-face { font-family: "IM Fell English SC"; src: url("../fonts/im-fell-english-sc-latin-400-normal.woff2") format("woff2"); font-display: swap; }
+
+/* shared hooks */
+.stage { background: var(--stage, var(--panel)); }
+.name { font-family: var(--font-name, inherit); font-weight: var(--name-weight, 700); font-style: var(--name-style, normal); font-size: var(--name-size, 19px); letter-spacing: var(--name-track, 0); }
+.tile { font-family: var(--font-tile, inherit); font-weight: var(--tile-weight, 800); border-radius: var(--tile-radius, 14%); }
+.tile .val, .tile .ord { font-family: system-ui, sans-serif; }
+.word { font-family: var(--font-tile, inherit); font-weight: var(--tile-weight, 800); }
+.word.empty { font-family: inherit; font-weight: 400; }
+.bubble { background: var(--bubble, var(--text)); color: var(--bubble-ink, var(--ink)); font-family: var(--font-bubble, inherit); font-style: var(--bubble-style, normal); font-size: var(--bubble-size, 14px); }
+html, body { transition: background-color 0.4s; }
+
+/* 1. Mark Twain: riverboat at dusk */
+body[data-foe="twain"] {
+  --bg: #14232a; --panel: #1d3742; --edge: #4c7482; --text: #f4e6c8; --dim: #a9bfc4;
+  --stage: linear-gradient(180deg, #2c5563 0%, #1d3742 70%);
+  --tile: #f1dfb6; --tile-sel: #ffbf3f; --ink: #3b2414;
+  --ehp: #d9603f; --hp: #d6454d; --good: #8fe08a; --warn: #ffbf3f;
+  --curse: #5a2d82; --curse-edge: #d9a3ff;
+  --bubble: #f4e6c8;
+  --font-name: "Rye", serif; --name-weight: 400; --name-size: 21px;
+  --font-tile: "Alfa Slab One", serif; --tile-weight: 400; --tile-radius: 10%; --curse-sel: #9b4fd0;
+}
+
+/* 2. Emily Dickinson: the garden at Amherst */
+body[data-foe="dickinson"] {
+  --bg: #141c17; --panel: #213228; --edge: #55735f; --text: #f3efe2; --dim: #a8b8a9;
+  --stage: linear-gradient(180deg, #34503d 0%, #213228 75%);
+  --tile: #f6f1e3; --tile-sel: #f4d35e; --ink: #2f3a2c;
+  --ehp: #b497d6; --hp: #d6454d; --good: #9fe0a0; --warn: #f4d35e;
+  --curse: #4a3a6b; --curse-edge: #cdb6f2;
+  --bubble: #f6f1e3; --font-bubble: "Cormorant Garamond", serif; --bubble-style: italic; --bubble-size: 17px;
+  --font-name: "Cormorant Garamond", serif; --name-weight: 600; --name-style: italic; --name-size: 25px;
+  --font-tile: "Cormorant Garamond", serif; --tile-weight: 700; --tile-radius: 26%; --curse-sel: #8a6fc0;
+}
+
+/* 3. Mary Shelley: the laboratory in the storm */
+body[data-foe="shelley"] {
+  --bg: #0f1220; --panel: #1b2140; --edge: #4a5a94; --text: #e6ecf5; --dim: #a3aed0;
+  --stage: linear-gradient(180deg, #2e3a73 0%, #1b2140 75%);
+  --tile: #cfdcc6; --tile-sel: #b8f25a; --ink: #1c2a22;
+  --ehp: #8be04e; --hp: #d6454d; --good: #b8f25a; --warn: #ffe45c;
+  --curse: #3b2a5e; --curse-edge: #ffe45c;
+  --bubble: #e6ecf5;
+  --font-name: "Pirata One", serif; --name-weight: 400; --name-size: 26px; --name-track: 0.5px;
+  --font-tile: "Special Elite", monospace; --tile-weight: 400; --tile-radius: 6%; --curse-sel: #6b4fb0;
+}
+
+/* 4. Edgar Allan Poe: midnight dreary */
+body[data-foe="poe"] {
+  --bg: #120b0e; --panel: #3a1620; --edge: #8a4a55; --text: #f1e6d0; --dim: #d2b8b0;
+  --stage: linear-gradient(180deg, #7a2f3d 0%, #4a1b27 80%);
+  --tile: #ddd5c3; --tile-sel: #e9b949; --ink: #1d1418;
+  --ehp: #c9253a; --hp: #d6454d; --good: #a8dc8c; --warn: #e9b949;
+  --curse: #17111a; --curse-edge: #e0364c;
+  --bubble: #f1e6d0;
+  --font-name: "IM Fell English SC", serif; --name-weight: 400; --name-size: 22px; --name-track: 0.5px;
+  --font-tile: "IM Fell English SC", serif; --tile-weight: 400; --tile-radius: 12% 12% 6% 6%; --curse-sel: #8f1d2c;
+}
+body[data-foe="poe"] .tile.cursed { color: #f1e6d0; }
+.tile.cursed.picked { background: var(--curse-sel, #9b4fd0); }
+body[data-foe="shelley"] .tile { padding-top: 6%; }   /* typewriter face sits high */
