@@ -141,7 +141,10 @@ try:
                 page.locator("#ovBtn").tap()
                 if st["idx"] == 0:
                     page.wait_for_function("beatPoe.S.mode === 'fight'")
-                    check(page.evaluate("() => document.getElementById('faceImg').hidden && !document.getElementById('facePlaceholder').hasAttribute('hidden')"), "Dickinson still shows the placeholder")
+                    # the next foe shows either its portrait or, if it has none yet, the placeholder
+                    page.wait_for_function("!document.getElementById('facePlaceholder').hasAttribute('hidden') || !document.getElementById('faceImg').hidden", timeout=3000)
+                    src = page.evaluate("() => document.getElementById('faceImg').hidden ? 'placeholder' : document.getElementById('faceImg').getAttribute('src')")
+                    check(src == "placeholder" or src.endswith("dickinson-normal.webp"), f"second foe shows {src}")
                 continue
             if st["mode"] in ("won", "defeat"):
                 outcome = st["mode"]; break
@@ -159,6 +162,7 @@ try:
         check(fin["perfect"] == fin["plays"], "every best-word play was judged perfect")
         page.locator("#ovBtn").tap()
         check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.fight.idx === 0 && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80"), "Play again starts a fresh run with 0 lives")
+        logs = [l for l in logs if "404" not in l]     # portraits that do not exist yet are expected to 404
         check(not logs, f"no console errors {logs[:2]}")
         ctx.close()
 

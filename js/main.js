@@ -7,10 +7,25 @@ const ENEMY_DELAY = 700;          // ms pause before the foe hits back
 const BANNER_MS = { life: 3800, close: 2400 };
 const RESULT_DELAY = 1500;        // ms the defeated foe's cross face is shown before the result card
 
-// Portraits: one calm and one cross picture per foe (foes without art get the placeholder).
-const FACES = {
-  twain: { normal: 'art/twain-normal.webp', cross: 'art/twain-cross.webp', sore: 'Hmph. Beginner\u2019s luck.' },
+// Portraits: art/<id>-normal.webp and art/<id>-cross.webp for each foe.
+// A foe whose pictures are not in the art folder yet gets the grey placeholder.
+const SORE = {                    // what a beaten foe says (placeholder lines until the popups map)
+  twain: 'Hmph. Beginner\u2019s luck.',
+  dickinson: 'Well \u2014 I never.',
+  shelley: 'It\u2019s alive\u2026 and it beat me.',
+  poe: 'Nevermore, you say?',
 };
+const artState = {};              // foe id -> 'ok' | 'missing' (unset while still checking)
+const facePaths = (id) => ({ normal: `art/${id}-normal.webp`, cross: `art/${id}-cross.webp` });
+const faceOf = (id) => (artState[id] === 'ok' ? facePaths(id) : null);
+// Look for a foe's pictures; show them once they have loaded.
+function checkArt(id) {
+  if (artState[id]) return;
+  const probe = new Image();
+  probe.onload = () => { artState[id] = 'ok'; new Image().src = facePaths(id).cross; render(); };
+  probe.onerror = () => { artState[id] = 'missing'; render(); };
+  probe.src = facePaths(id).normal;
+}
 
 const S = {
   mode: 'loading',                // loading | fight | victory | defeat | won
@@ -98,10 +113,10 @@ function render() {
   const e = f.enemy;
 
   $('foeName').textContent = e.name;
-  const art = FACES[e.id];
+  const art = faceOf(e.id);
   const img = $('faceImg');
   $('face').classList.toggle('art', !!art);
-  $('facePlaceholder').toggleAttribute('hidden', !!art);
+  $('facePlaceholder').toggleAttribute('hidden', artState[e.id] !== 'missing');   // placeholder only when there is no art
   img.hidden = !art;
   if (art) {
     const want = S.foeCross ? art.cross : art.normal;
@@ -224,8 +239,7 @@ function startFight(idx) {
   S.foeCross = false;
   S.overlayReady = false;
   clearTimeout(resultTimer);
-  const art = FACES[S.fight.enemy.id];
-  if (art) new Image().src = art.cross;           // fetch the cross face now so the swap is instant
+  checkArt(S.fight.enemy.id);
   hideBanner(); disarmScramble();
   $('overlay').hidden = true;
   note(null);
@@ -311,8 +325,8 @@ function submit() {
     if (last) S.mode = 'won';
     // the beaten foe turns cross; the result card follows after a beat
     S.foeCross = true;
-    const art = FACES[f.enemy.id];
-    say(art ? art.sore : 'You win this round.');
+    const art = faceOf(f.enemy.id);
+    say(SORE[f.enemy.id] || 'You win this round.');
     render();
     restartAnim($('foeBox'), 'shake');
     if (art) restartAnim($('faceImg'), 'cross-in');
