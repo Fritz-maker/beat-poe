@@ -26,6 +26,7 @@ The game must be opened through a web server (not by double-clicking index.html)
 
 - `js/logic.js` - pure rules, tuning knobs at the top (ported from the LÖVE version's logic.lua)
 - `js/main.js`  - the UI
+- `js/lines.js` - what each foe says at each game moment, with the source of every genuine quotation
 - `css/themes.css` - one colour-and-font theme per foe
 - `data/words.txt` - every playable word; `data/common.txt` - common words for the best-word check
 - `test/` - rule tests: `node --test`

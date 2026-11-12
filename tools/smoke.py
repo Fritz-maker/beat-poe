@@ -120,10 +120,15 @@ try:
         page.add_init_script("window.__fast = true")
         page.goto(URL)
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
-        seen = set(); shots = set(); plays = 0; outcome = None
+        seen = set(); shots = set(); plays = 0; outcome = None; said = set()
         for step in range(400):
             st = page.evaluate("() => ({mode: beatPoe.S.mode, phase: beatPoe.S.phase, idx: beatPoe.S.fight.idx, lives: beatPoe.S.lives, hp: beatPoe.S.playerHp, banner: document.getElementById('banner').hidden ? '' : document.getElementById('banner').className, wave: document.getElementById('wave').className, cursed: beatPoe.S.fight.grid.filter(t=>t.cursed).length})")
             seen.add(st["mode"])
+            # whatever the foe is saying must be one of that foe's lines, and must fit inside the stage
+            bub = page.evaluate("() => { const f = beatPoe.S.fight, set = beatPoe.LINES[f.enemy.id]; const all = Object.values(set).flat().map(l => l.replaceAll(' / ', '\\n')); const m = document.getElementById('msg'); return {ok: all.includes(m.textContent), text: m.textContent, fits: m.getBoundingClientRect().bottom <= document.querySelector('.foebar').getBoundingClientRect().top + 1} }")
+            if not bub["ok"]: check(False, f"bubble shows a known line (got {bub['text']!r})")
+            if not bub["fits"]: check(False, f"bubble fits in the stage ({bub['text']!r})")
+            said.add(bub["text"])
             for key, cond in [("banner-life", "life" in st["banner"]), ("banner-close", "close" in st["banner"]),
                               ("wave-soon", "soon" in st["wave"] and st["cursed"] > 0), (st["mode"], st["mode"] != "fight")]:
                 if cond and key not in shots:
@@ -161,6 +166,7 @@ try:
         fin = page.evaluate("() => ({idx: beatPoe.S.fight.idx, lives: beatPoe.S.lives, perfect: beatPoe.S.totalPerfect, plays: beatPoe.S.totalPlays})")
         print(f"--- full run by taps: outcome={outcome}, {plays} plays, {json.dumps(fin)}, screenshots={sorted(shots)}")
         check(outcome == "won", "a perfect-play bot wins a whole run through the UI")
+        check(len(said) >= 8, f"the foes said {len(said)} different lines during the run")
         check(fin["perfect"] == fin["plays"], "every best-word play was judged perfect")
         page.locator("#ovBtn").tap()
         check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.fight.idx === 0 && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80"), "Play again starts a fresh run with 0 lives")

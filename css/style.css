@@ -98,11 +98,24 @@ button.icon {
   content: ""; position: absolute; left: -5px; top: 12px;
   width: 12px; height: 12px; background: inherit; transform: rotate(45deg);
 }
+.bubble { white-space: pre-line; }
 .bubble:empty { visibility: hidden; }
 .bubble.pop { animation: pop 0.25s ease-out; }
 
 /* ---- the wall: foe health + curse countdown ---- */
-.wall { margin-top: -6px; display: flex; flex-direction: column; gap: 4px; }
+.wall { position: relative; margin-top: -6px; display: flex; flex-direction: column; gap: 4px; }
+.you { position: relative; }
+.wall .floater { left: 86%; }                      /* clear of the speech bubble */
+.floater {
+  position: absolute; left: 50%; top: -6px; z-index: 5; pointer-events: none;
+  font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 2px 0 #000, 0 0 6px #000;
+  animation: floatup 1s ease-out forwards;
+}
+@keyframes floatup {
+  0% { transform: translate(-50%, 6px) scale(0.6); opacity: 0; }
+  20% { transform: translate(-50%, -6px) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -34px) scale(1); opacity: 0; }
+}
 .bar {
   position: relative;
   height: 16px;
@@ -254,7 +267,12 @@ button.chip[hidden] { display: none; }
   .stage-side { gap: 3px; padding: 4px 4px 4px 12px; }
   .who { padding-top: 2px; display: flex; gap: 8px; align-items: baseline; }
   .name { font-size: 16px; }
-  button.icon { width: 36px; height: 32px; }
+  /* the gear floats in the corner so the name takes one short line and the bubble gets the rest */
+  .stage-side { position: relative; }
+  button.icon { position: absolute; right: 0; top: 0; width: 36px; height: 30px; }
+  .who { padding-right: 34px; }
+  .who .small { display: none; }                  /* no room for "Foe 2 of 4" here */
+  .name { font-size: min(var(--name-size, 19px), 17px) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bubble { font-size: 13px; padding: 4px 8px; line-height: 1.25; }
   .wall { margin-top: -4px; gap: 2px; }
   .foebar { height: 14px; }

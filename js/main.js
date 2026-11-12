@@ -1,5 +1,6 @@
 // main.js : Beat Poe! plain playable skeleton (no author art or popups yet).
 import L from './logic.js';
+import { LINES, LOW_HP, reactionKey, foeTurnKey } from './lines.js';
 
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = 'beatpoe.settings';
@@ -9,12 +10,6 @@ const RESULT_DELAY = 1500;        // ms the defeated foe's cross face is shown b
 
 // Portraits: art/<id>-normal.webp and art/<id>-cross.webp for each foe.
 // A foe whose pictures are not in the art folder yet gets the grey placeholder.
-const SORE = {                    // what a beaten foe says (placeholder lines until the popups map)
-  twain: 'Hmph. Beginner\u2019s luck.',
-  dickinson: 'Well \u2014 I never.',
-  shelley: 'It\u2019s alive\u2026 and it beat me.',
-  poe: 'Nevermore, you say?',
-};
 const artState = {};              // foe id -> 'ok' | 'missing' (unset while still checking)
 const facePaths = (id) => ({ normal: `art/${id}-normal.webp`, cross: `art/${id}-cross.webp` });
 const faceOf = (id) => (artState[id] === 'ok' ? facePaths(id) : null);
@@ -62,11 +57,42 @@ function saveSettings() {
 const tiles = [];
 let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0, resultTimer = 0;
 
-// What the foe says (the speech bubble on the stage).
+// What the foe says (the speech bubble on the stage). " / " in a line is a verse line break.
 function say(text) {
   const m = $('msg');
-  m.textContent = text;
+  m.textContent = text.replaceAll(' / ', '\n');
+  fitBubble();
   restartAnim(m, 'pop');
+}
+
+// Say one of the current foe's lines (js/lines.js). Lines given as a list are used in rotation.
+function sayLine(key) {
+  const f = S.fight;
+  const set = LINES[f.enemy.id] || {};
+  let line = set[key];
+  if (Array.isArray(line)) { line = line[f.said[key] % line.length]; f.said[key]++; }
+  if (line) say(line);
+}
+
+// Shrink the bubble's text until it fits inside the stage (long lines on small phones).
+function fitBubble() {
+  const m = $('msg'), stage = $('foeBox');
+  m.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(m).fontSize);
+  const limit = () => stage.getBoundingClientRect().bottom - 10;   // the health bar overlaps the stage's bottom edge
+  while (size > 10 && m.getBoundingClientRect().bottom > limit()) {
+    size -= 1;
+    m.style.fontSize = size + 'px';
+  }
+}
+
+// A damage number that floats up off a health bar.
+function floatNumber(holderId, text) {
+  const el = document.createElement('span');
+  el.className = 'floater';
+  el.textContent = text;
+  el.addEventListener('animationend', () => el.remove());
+  $(holderId).append(el);
 }
 
 // A short system note under the word tray (shown while no word is being spelled).
@@ -233,6 +259,9 @@ const settingsOpen = () => !$('settings').hidden;
 function startFight(idx) {
   S.fight = L.newFight(idx);
   S.fight.plays = 0; S.fight.perfect = 0; S.fight.longest = '';
+  S.fight.said = { hit: 0 };      // rotation counters for lines said more than once
+  S.fight.saidLow = false;        // the "nearly dead" line is said once per fight
+  S.fight.held = false;           // the foe has reacted to the word just played and keeps that line up
   clearSel();
   S.reveal = null;
   S.phase = 'player';
@@ -244,8 +273,8 @@ function startFight(idx) {
   hideBanner(); disarmScramble();
   $('overlay').hidden = true;
   note(null);
-  say('Your move.');
   render();
+  sayLine('intro');
   tiles.forEach((el) => restartAnim(el, 'fresh'));
 }
 
@@ -308,6 +337,9 @@ function submit() {
   clearSel();
 
   note(`${res.word} hits for ${res.dmg}.`, 'good');
+  floatNumber('wallBox', `\u2212${res.dmg}`);
+  const reaction = reactionKey(verdict, res.word.length);
+  f.held = false;
   if (verdict === 'perfect') {
     showBanner('life', 'BONUS LIFE!', `Perfect word! Lives saved for the final fight: ${S.lives}`);
   } else if (verdict === 'close') {
@@ -327,8 +359,8 @@ function submit() {
     // the beaten foe turns cross; the result card follows after a beat
     S.foeCross = true;
     const art = faceOf(f.enemy.id);
-    say(SORE[f.enemy.id] || 'You win this round.');
     render();
+    sayLine('beaten');
     restartAnim($('foeBox'), 'shake');
     if (art) restartAnim($('faceImg'), 'cross-in');
     clearTimeout(resultTimer);
@@ -347,6 +379,7 @@ function submit() {
   }
   beginEnemyPhase();
   render();
+  if (reaction) { sayLine(reaction); f.held = true; }
   res.used.forEach((i) => restartAnim(tiles[i], 'fresh'));
   restartAnim($('foeBox'), 'shake');
 }
@@ -377,6 +410,8 @@ function doScramble() {
   note('Grid scrambled.', 'warn');
   beginEnemyPhase();
   render();
+  sayLine('scramble');
+  S.fight.held = true;
   tiles.forEach((el) => restartAnim(el, 'fresh'));
 }
 
@@ -385,25 +420,35 @@ function enemyTurn() {
   const f = S.fight;
   const { dmg, replaced } = L.enemyAct(f);
   S.playerHp -= dmg;
-  let text = `I hit you for ${dmg}.`;
-  if (replaced) text += ` And a curse wave: ${replaced.length} tiles turn to hard letters.`;
+  floatNumber('youBox', `\u2212${dmg}`);
+  let lifeUsed = false;
 
   if (S.playerHp <= 0 && S.lives > 0 && f.idx === L.ENEMIES.length - 1) {
     S.lives--;                                    // spend a bonus life in the final fight
     S.playerHp = Math.floor(L.PLAYER_MAX_HP * L.REVIVE_FRAC);
-    text = `I hit for ${dmg}, but you spend a bonus life and come back with ${S.playerHp} HP. (${S.lives} left)`;
+    lifeUsed = true;
+    note(`Bonus life used! Back with ${S.playerHp} health. Lives left: ${S.lives}`, 'warn');
     S.phase = 'player';
   } else if (S.playerHp <= 0) {
     S.playerHp = 0;
     S.mode = 'defeat';
+    say('');                                      // the foe's last word goes on the result card
+    const last = (LINES[f.enemy.id] || {}).win;
     showOverlay(`${f.enemy.name} wins`,
-      `You were spelled to death.\nBest-word hits this run: ${S.totalPerfect} / ${S.totalPlays}`,
+      `${last ? `\u201c${last}\u201d\n\n` : ''}Best-word hits this run: ${S.totalPerfect} / ${S.totalPlays}`,
       'bad', 'Try again');
   } else {
     S.phase = 'player';
+    if (replaced) note(`Curse wave! ${replaced.length} tiles turned to hard letters.`, 'warn');
   }
-  say(text);
   render();
+  if (S.mode === 'fight') {
+    const low = S.playerHp <= LOW_HP && !f.saidLow && !lifeUsed;
+    const key = foeTurnKey({ lifeUsed, cursed: !!replaced, waveNext: f.waveIn <= 1, low, held: f.held });
+    if (key === 'low') f.saidLow = true;
+    if (key) sayLine(key);
+  }
+  f.held = false;
   restartAnim($('youBox'), 'shake');
   if (replaced) replaced.forEach((i) => restartAnim(tiles[i], 'fresh'));
 }
@@ -473,6 +518,9 @@ function wire() {
     $(id).addEventListener('animationend', () => $(id).classList.remove('shake'));
   }
 
+  window.addEventListener('resize', fitBubble);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBubble);
+
   // desktop keyboard
   window.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
@@ -519,6 +567,6 @@ async function boot() {
 }
 
 // handy for testing from the browser console
-window.beatPoe = { S, L, render };
+window.beatPoe = { S, L, LINES, render };
 
 boot();
