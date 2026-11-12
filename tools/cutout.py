@@ -3,8 +3,8 @@
     python3 tools/cutout.py ~/Downloads/some-picture.jpeg art/twain-normal.webp
 
 The background colour is read from the picture's corners. Everything of that
-colour that is connected to the edge of the picture becomes transparent, so
-dark outlines and details inside the figure are kept.
+colour that is connected to the top or side edges of the picture becomes transparent, so
+dark outlines, dark clothes and details inside the figure are kept.
 
 Needs: pip install pillow numpy
 """
@@ -31,7 +31,8 @@ def cutout(src, dst):
 
     # grow inwards from the picture's edge through background-coloured pixels
     mask = np.zeros((h, w), bool)
-    mask[0, :], mask[-1, :], mask[:, 0], mask[:, -1] = close[0, :], close[-1, :], close[:, 0], close[:, -1]
+    # (not from the bottom edge: the figure stands on it, and dark clothes there can match the background)
+    mask[0, :], mask[:, 0], mask[:, -1] = close[0, :], close[:, 0], close[:, -1]
     while True:
         grown = mask.copy()
         grown[1:, :] |= mask[:-1, :]
