@@ -2,6 +2,7 @@
 import L from './logic.js';
 import { LINES, LOW_HP, reactionKey, foeTurnKey } from './lines.js';
 import { playBonusLife, SPLASH_MS } from './bonus.js';
+import { initTitle } from './title.js';
 
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = 'beatpoe.settings';
@@ -60,6 +61,7 @@ function saveSettings() {
 // ---------------------------------------------------------------------------
 const tiles = [];
 let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0, resultTimer = 0;
+let title = null;                 // the title screen (js/title.js), shown once when the game is opened
 let stopSplash = null;            // stops the BONUS LIFE splash if one is playing
 
 
@@ -613,6 +615,14 @@ function wire() {
       if (ev.key === 'Escape' || ev.key === 'Enter') { ev.preventDefault(); closeSettings(); }
       return;
     }
+    if (title.isHowOpen()) {
+      if (ev.key === 'Escape' || ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); title.closeHow(); }
+      return;
+    }
+    if (title.isOpen()) {                          // the game waits behind the title screen
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); title.play(); }
+      return;
+    }
     if (S.mode !== 'fight') {
       if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); advance(); }
       return;
@@ -627,6 +637,7 @@ function wire() {
 
 async function boot() {
   buildTiles();
+  title = initTitle({ onPlay: () => startRun(), onSettings: openSettings });
   wire();
   try {
     const [words, common] = await Promise.all(['data/words.txt', 'data/common.txt'].map(async (url) => {
@@ -646,7 +657,8 @@ async function boot() {
   loadSettings();
   $('loading').hidden = true;
   $('app').classList.remove('loading');
-  startRun();
+  startRun();                                     // set up behind the title screen, so Settings works there too
+  title.open();
 }
 
 // Offline play and add-to-home-screen (needs https or localhost; silently skipped elsewhere).

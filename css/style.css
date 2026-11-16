@@ -477,6 +477,73 @@ button.chip[hidden] { display: none; }
 .bl-zone.calm .bl-sub, .bl-zone.calm .bl-count { opacity: 1; transform: none; }
 .bl-zone.calm.fade { opacity: 0; transition: opacity .5s; }
 
+/* ---- title screen (js/title.js): a layer over the game, shown once when the game is opened ---- */
+.title {
+  position: absolute; inset: 0; z-index: 9;
+  padding: max(8px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+           max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+  display: flex; flex-direction: column; justify-content: space-between;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(122, 47, 61, .55) 0%, transparent 60%),
+    radial-gradient(100% 50% at 50% 100%, rgba(46, 58, 115, .45) 0%, transparent 65%),
+    #120d16;
+}
+.title[hidden] { display: none; }
+.title.leaving { opacity: 0; pointer-events: none; transition: opacity .22s; }
+.title > * { flex: none; }
+.ti-top { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+.ti-brand { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+.ti-top button.icon { position: static; width: 40px; height: 36px; }
+/* --- variant A: a title built from tiles, one font per author --- */
+.ti-logo { margin: 0; font: inherit; display: grid; gap: calc(var(--tw) * .12); justify-content: center; --tw: min(19vw, 10.5dvh, 92px); }
+.ti-row { display: flex; gap: calc(var(--tw) * .1); justify-content: center; }
+.lt {
+  position: relative; width: var(--tw); height: var(--tw); border: 0; padding: 0;
+  border-radius: 14%; background: var(--t, #f1dfb6); color: var(--k, #3b2414);
+  font-family: var(--f); font-weight: var(--w, 400); font-size: calc(var(--tw) * .62); line-height: 1;
+  box-shadow: 0 calc(var(--tw) * .06) 0 rgba(0, 0, 0, .5);
+  display: flex; align-items: center; justify-content: center; padding-top: var(--pt, 0);
+  transform: translateY(0) rotate(var(--r, 0deg));
+  animation: lt-drop .7s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--i) * 90ms + 150ms);
+  touch-action: manipulation; cursor: pointer; min-height: 0; transition: transform .1s, background .1s;
+}
+.lt small { position: absolute; right: 9%; bottom: 6%; font: 600 calc(var(--tw) * .22)/1 system-ui, sans-serif; opacity: .7; }
+.lt.cursed { background: var(--curse); color: #fff5ff; outline: 3px solid var(--curse-edge); outline-offset: -3px; }
+.lt.up { background: var(--tile-sel); transform: translateY(-8%) rotate(0); }
+@keyframes lt-drop { 0% { opacity: 0; transform: translateY(-160%) rotate(-12deg) scale(.8); } 100% { opacity: 1; } }
+.ti-tag { text-align: center; margin: 0; font-size: 15px; color: var(--text); opacity: .9; }
+.ti-tag span { color: var(--warn); }
+
+/* --- the lineup --- */
+.ti-line { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; position: relative; }
+.ti-line::before { content: ""; position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; background: repeating-linear-gradient(90deg, var(--edge) 0 6px, transparent 6px 12px); opacity: .5; }
+.pc {
+  position: relative; border-radius: 12px; overflow: hidden; background: var(--st); border: 1px solid var(--ed);
+  container-type: inline-size; display: flex; flex-direction: column; align-items: stretch;
+  animation: pc-in .5s ease-out both; animation-delay: calc(var(--i) * 110ms + 700ms);
+}
+@keyframes pc-in { from { opacity: 0; transform: translateY(14px); } }
+.pc img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; object-position: bottom; }
+.pc b { display: block; text-align: center; padding: 3px 2px 4px; background: rgba(0, 0, 0, .35); color: var(--tx);
+        font-family: var(--nf); font-weight: var(--nw, 400); font-style: var(--ns, normal); font-size: clamp(11px, 4.4cqw, 15px); letter-spacing: var(--nt, 0); white-space: nowrap; }
+.pc i { position: absolute; left: 4px; top: 3px; font: 700 11px/1 system-ui, sans-serif; font-style: normal; color: rgba(255, 255, 255, .85); text-shadow: 0 1px 2px #000; }
+.pc.final { outline: 2px solid #e0364c; box-shadow: 0 0 14px rgba(224, 54, 76, .65); }
+.pc.final em { position: absolute; right: 0; top: 0; padding: 2px 6px; border-radius: 0 0 0 8px; background: #c9253a; color: #fff;
+               font: 800 9px/1.2 system-ui, sans-serif; letter-spacing: .08em; font-style: normal; }
+.ti-cap { text-align: center; font-size: 12px; color: var(--dim); margin-top: 5px; }
+
+/* --- buttons and footer --- */
+.ti-cta { display: grid; gap: 8px; }
+.ti-cta .play { min-height: 58px; font-size: 22px; font-weight: 800; letter-spacing: .04em; border-radius: 14px;
+  background: linear-gradient(180deg, #3b7a41, #2f5c33); border-color: var(--good); color: #f4fff2; box-shadow: 0 4px 0 rgba(0, 0, 0, .45), 0 0 18px rgba(115, 217, 128, .25);
+  animation: breathe 2.4s ease-in-out 1.4s infinite; }
+@keyframes breathe { 50% { box-shadow: 0 4px 0 rgba(0, 0, 0, .45), 0 0 26px rgba(115, 217, 128, .55); } }
+.ti-cta .how { min-height: 42px; font-size: 15px; }
+.ti-foot { text-align: center; font-size: 11px; color: var(--dim); line-height: 1.4; padding-top: 6px; }
+.howlist { text-align: left; margin: 0 0 16px; padding-left: 18px; line-height: 1.5; font-size: 15px; }
+.howlist li + li { margin-top: 6px; }
+.howlist b { color: var(--warn); }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }

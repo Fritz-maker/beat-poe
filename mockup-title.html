@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17121a">
+<title>Beat Poe! - title screen mockup</title>
+<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/themes.css?v=1">
+<style>
+/* ===== the title screen (MOCKUP: this is what would move into css/style.css) ===== */
+body { background: #120d16; }
+#app.ti {
+  gap: 0; justify-content: space-between;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(122, 47, 61, .55) 0%, transparent 60%),
+    radial-gradient(100% 50% at 50% 100%, rgba(46, 58, 115, .45) 0%, transparent 65%),
+    var(--bg);
+}
+.ti > * { flex: none; }
+.ti-top { display: flex; align-items: center; justify-content: space-between; min-height: 36px; }
+.ti-brand { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
+.ti-top button.icon { position: static; width: 40px; height: 36px; }
+.mockchip { font-size: 11px; min-height: 26px; padding: 0 8px; border-radius: 13px; color: var(--dim); background: none; }
+.mockchip b { color: var(--tile-sel); }
+
+/* --- variant A: a title built from tiles, one font per author --- */
+.ti-logo { display: grid; gap: calc(var(--tw) * .12); justify-content: center; --tw: min(19vw, 10.5dvh, 92px); }
+.ti-row { display: flex; gap: calc(var(--tw) * .1); justify-content: center; }
+.lt {
+  position: relative; width: var(--tw); height: var(--tw); border: 0; padding: 0;
+  border-radius: 14%; background: var(--t, #f1dfb6); color: var(--k, #3b2414);
+  font-family: var(--f); font-weight: var(--w, 400); font-size: calc(var(--tw) * .62); line-height: 1;
+  box-shadow: 0 calc(var(--tw) * .06) 0 rgba(0, 0, 0, .5);
+  display: flex; align-items: center; justify-content: center; padding-top: var(--pt, 0);
+  transform: translateY(0) rotate(var(--r, 0deg));
+  animation: lt-drop .7s cubic-bezier(.3, 1.5, .5, 1) both; animation-delay: calc(var(--i) * 90ms + 150ms);
+  touch-action: manipulation; cursor: pointer; min-height: 0; transition: transform .1s, background .1s;
+}
+.lt small { position: absolute; right: 9%; bottom: 6%; font: 600 calc(var(--tw) * .22)/1 system-ui, sans-serif; opacity: .7; }
+.lt.cursed { background: var(--curse); color: #fff5ff; outline: 3px solid var(--curse-edge); outline-offset: -3px; }
+.lt.up { background: var(--tile-sel); transform: translateY(-8%) rotate(0); }
+@keyframes lt-drop { 0% { opacity: 0; transform: translateY(-160%) rotate(-12deg) scale(.8); } 100% { opacity: 1; } }
+.ti-tag { text-align: center; margin: 0; font-size: 15px; color: var(--text); opacity: .9; }
+.ti-tag span { color: var(--warn); }
+
+/* --- the lineup --- */
+.ti-line { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; position: relative; }
+.ti-line::before { content: ""; position: absolute; left: 6%; right: 6%; top: 50%; height: 2px; background: repeating-linear-gradient(90deg, var(--edge) 0 6px, transparent 6px 12px); opacity: .5; }
+.pc {
+  position: relative; border-radius: 12px; overflow: hidden; background: var(--st); border: 1px solid var(--ed);
+  container-type: inline-size; display: flex; flex-direction: column; align-items: stretch;
+  animation: pc-in .5s ease-out both; animation-delay: calc(var(--i) * 110ms + 700ms);
+}
+@keyframes pc-in { from { opacity: 0; transform: translateY(14px); } }
+.pc img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; object-position: bottom; }
+.pc b { display: block; text-align: center; padding: 3px 2px 4px; background: rgba(0, 0, 0, .35); color: var(--tx);
+        font-family: var(--nf); font-weight: var(--nw, 400); font-style: var(--ns, normal); font-size: clamp(11px, 4.4cqw, 15px); letter-spacing: var(--nt, 0); white-space: nowrap; }
+.pc i { position: absolute; left: 4px; top: 3px; font: 700 11px/1 system-ui, sans-serif; font-style: normal; color: rgba(255, 255, 255, .85); text-shadow: 0 1px 2px #000; }
+.pc.final { outline: 2px solid #e0364c; box-shadow: 0 0 14px rgba(224, 54, 76, .65); }
+.pc.final em { position: absolute; right: 0; top: 0; padding: 2px 6px; border-radius: 0 0 0 8px; background: #c9253a; color: #fff;
+               font: 800 9px/1.2 system-ui, sans-serif; letter-spacing: .08em; font-style: normal; }
+.ti-cap { text-align: center; font-size: 12px; color: var(--dim); margin-top: 5px; }
+
+/* --- buttons and footer --- */
+.ti-cta { display: grid; gap: 8px; }
+.ti-cta .play { min-height: 58px; font-size: 22px; font-weight: 800; letter-spacing: .04em; border-radius: 14px;
+  background: linear-gradient(180deg, #3b7a41, #2f5c33); border-color: var(--good); color: #f4fff2; box-shadow: 0 4px 0 rgba(0, 0, 0, .45), 0 0 18px rgba(115, 217, 128, .25);
+  animation: breathe 2.4s ease-in-out 1.4s infinite; }
+@keyframes breathe { 50% { box-shadow: 0 4px 0 rgba(0, 0, 0, .45), 0 0 26px rgba(115, 217, 128, .55); } }
+.ti-cta .how { min-height: 42px; font-size: 15px; }
+.ti-foot { text-align: center; font-size: 11px; color: var(--dim); line-height: 1.4; padding-top: 6px; }
+.howlist { text-align: left; margin: 0 0 16px; padding-left: 18px; line-height: 1.5; font-size: 15px; }
+.howlist li + li { margin-top: 6px; }
+.howlist b { color: var(--warn); }
+
+/* --- variant B: the duel poster, Poe in the middle --- */
+.v-b .a-only { display: none; }
+.b-only { display: none; }
+.v-b .b-only:not(.b-three) { display: block; }
+.b-hero {
+  position: relative; border-radius: 16px; overflow: hidden; container-type: size; border: 1px solid #8a4a55;
+  height: clamp(170px, 36dvh, 330px);
+  background: linear-gradient(180deg, #7a2f3d 0%, #4a1b27 80%);
+}
+.b-hero img { position: absolute; right: -9%; bottom: 0; height: 92cqh; width: auto; animation: pc-in .8s ease-out .4s both; }
+.b-title { position: absolute; left: 5cqw; top: 4cqh; font-family: "IM Fell English SC", serif; line-height: .92; color: #f1e6d0;
+           font-size: min(14cqw, 15cqh); text-shadow: 0 3px 0 #1d0a10, 0 0 22px rgba(233, 185, 73, .35); animation: pc-in .7s ease-out .1s both; }
+.b-title span { display: block; } .b-title span + span { color: #e9b949; font-size: 1.35em; }
+.b-bubble { position: absolute; left: 5cqw; bottom: 5cqh; width: 46cqw; padding: 7px 9px; border-radius: 12px; background: #f1e6d0; color: #1d1418;
+            font-family: "IM Fell English SC", serif; font-size: min(14px, 3.7cqw); line-height: 1.22; animation: pc-in .6s ease-out 1s both; }
+.b-bubble::after { content: ""; position: absolute; right: -5px; top: 14px; width: 12px; height: 12px; background: inherit; transform: rotate(45deg); }
+.b-three { display: none; align-items: center; justify-content: center; gap: 10px; }
+.v-b .b-three { display: flex; }
+.b-three p { margin: 0; font-size: 14px; color: var(--text); }
+.b-three .pc { width: clamp(46px, 14vw, 62px); border-radius: 50%; flex: none; }
+.b-three .pc b, .b-three .pc i { display: none; }
+.b-three .pc img { aspect-ratio: 1; }
+.v-b .a-sec { display: none; }
+</style>
+</head>
+<body>
+<main id="app" class="ti">
+
+  <header class="ti-top">
+    <button class="chip mockchip" id="vsw" tabindex="-1">mockup: variant <b id="vname">A</b> · tap to switch</button>
+    <button class="icon" aria-label="Settings" tabindex="-1"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg></button>
+  </header>
+
+  <!-- A: tile logo + lineup -->
+  <section class="ti-logo a-sec" id="logo" aria-label="Beat Poe!"></section>
+  <p class="ti-tag a-sec">A word duel against <span>four authors</span></p>
+  <section class="a-sec">
+    <div class="ti-line" id="lineA"></div>
+    <div class="ti-cap">Beat all four to win. Poe waits at the end.</div>
+  </section>
+
+  <!-- B: the poster -->
+  <section class="b-only">
+    <div class="b-hero"><div class="b-title"><span>Beat</span><span>Poe!</span></div>
+      <div class="b-bubble">Once upon a midnight dreary, while I pondered, weak and weary,</div>
+      <img src="art/poe-normal.webp" alt="Edgar Allan Poe"></div>
+  </section>
+  <section class="b-only b-three" id="lineB"></section>
+
+  <section class="ti-cta">
+    <button class="play primary" id="play">Play</button>
+    <button class="how" id="how">How to play</button>
+  </section>
+  <footer class="ti-foot">Spell long words, hit hard, and earn bonus lives.<br>By Wardo Studio · works offline once loaded</footer>
+
+  <div class="overlay" id="howPanel" hidden>
+    <div class="card panel">
+      <h1>How to play</h1>
+      <ol class="howlist">
+        <li>Tap tiles to spell a word of <b>3+ letters</b>, then tap <b>Play</b>.</li>
+        <li>Long words and rare letters hit much harder.</li>
+        <li>Every few turns a <b>curse wave</b> turns tiles into hard letters.</li>
+        <li>Play the <b>best word</b> the grid allows to earn a <b>bonus life</b> for the final fight.</li>
+      </ol>
+      <button class="primary" id="howClose">Got it</button>
+    </div>
+  </div>
+  <div class="overlay" id="note" hidden>
+    <div class="card panel"><h1>(mockup)</h1><p>Play would start the run here.</p><button class="primary" id="noteClose">OK</button></div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+// letters of the title: [char, value, font, weight, tile colour, ink colour, extra top padding]
+const LOGO = [
+  [['B', '1.5', '"Rye"', 400, '#f1dfb6', '#3b2414', 0], ['E', '1', '"Alfa Slab One"', 400, '#f6f1e3', '#2f3a2c', 0], ['A', '1', '"Cormorant Garamond"', 700, '#cfdcc6', '#1c2a22', 0], ['T', '1', '"Pirata One"', 400, '#ddd5c3', '#1d1418', 0]],
+  [['P', '1.5', '"Special Elite"', 400, '#cfdcc6', '#1c2a22', '6%'], ['O', '1', '"IM Fell English SC"', 400, '#ddd5c3', '#1d1418', 0], ['E', '1', '"Rye"', 400, '#f1dfb6', '#3b2414', 0], ['!', '', '"Alfa Slab One"', 400, '', '', 0]],
+];
+const FOES = [
+  { id: 'twain', n: 'Twain', st: 'linear-gradient(180deg,#2c5563,#1d3742)', ed: '#4c7482', tx: '#f4e6c8', nf: '"Rye"' },
+  { id: 'dickinson', n: 'Dickinson', st: 'linear-gradient(180deg,#34503d,#213228)', ed: '#55735f', tx: '#f3efe2', nf: '"Cormorant Garamond"', nw: 600, ns: 'italic' },
+  { id: 'shelley', n: 'Shelley', st: 'linear-gradient(180deg,#2e3a73,#1b2140)', ed: '#4a5a94', tx: '#e6ecf5', nf: '"Pirata One"' },
+  { id: 'poe', n: 'Poe', st: 'linear-gradient(180deg,#7a2f3d,#4a1b27)', ed: '#8a4a55', tx: '#f1e6d0', nf: '"IM Fell English SC"', nt: '.5px' },
+];
+let k = 0;
+LOGO.forEach((row) => {
+  const r = document.createElement('div'); r.className = 'ti-row';
+  row.forEach(([ch, v, f, w, t, ink, pt]) => {
+    const b = document.createElement('button'); b.className = 'lt' + (ch === '!' ? ' cursed' : ''); b.tabIndex = -1;
+    b.style.cssText = `--f:${f};--w:${w};--t:${t};--k:${ink};--pt:${pt};--i:${k};--r:${[-2, 1.5, -1, 2, 1, -2, 1.5, -1][k]}deg`;
+    b.textContent = ch; if (v) { const s = document.createElement('small'); s.textContent = v; b.append(s); }
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.classList.toggle('up'); });
+    r.append(b); k++;
+  });
+  $('logo').append(r);
+});
+function card(f, i, withName) {
+  const c = document.createElement('div'); c.className = 'pc' + (f.id === 'poe' ? ' final' : '');
+  c.style.cssText = `--st:${f.st};--ed:${f.ed};--tx:${f.tx};--nf:${f.nf};--nw:${f.nw || 400};--ns:${f.ns || 'normal'};--nt:${f.nt || 0};--i:${i}`;
+  c.innerHTML = `<img src="art/${f.id}-normal.webp" alt="${f.n}">` + (withName ? `<b>${f.n}</b><i>${i + 1}</i>` : '') + (f.id === 'poe' && withName ? '<em>FINAL</em>' : '');
+  return c;
+}
+FOES.forEach((f, i) => $('lineA').append(card(f, i, true)));
+const p = document.createElement('p'); p.textContent = 'First, get past'; $('lineB').append(p);
+FOES.slice(0, 3).forEach((f, i) => $('lineB').append(card(f, i, false)));
+
+function setVariant(v) { $('app').classList.toggle('v-b', v === 'B'); $('vname').textContent = v; }
+$('vsw').addEventListener('click', () => setVariant($('app').classList.contains('v-b') ? 'A' : 'B'));
+$('how').addEventListener('click', () => { $('howPanel').hidden = false; });
+$('howClose').addEventListener('click', () => { $('howPanel').hidden = true; });
+$('play').addEventListener('click', () => { $('note').hidden = false; });
+$('noteClose').addEventListener('click', () => { $('note').hidden = true; });
+addEventListener('keydown', (e) => { if (e.key === 'v' || e.key === 'V') $('vsw').click(); });
+setVariant(new URLSearchParams(location.search).get('v') === 'B' ? 'B' : 'A');
+</script>
+</body>
+</html>

@@ -8,6 +8,11 @@ srv = subprocess.Popen([sys.executable, "-I", "-m", "http.server", "8765", "--bi
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 time.sleep(1)
 URL = "http://127.0.0.1:8765/"
+def start(page):
+    """Leave the title screen the way a player does: tap Play."""
+    page.locator("#titlePlay").click()
+    page.wait_for_function("document.getElementById('title').hidden", timeout=3000)
+
 errors = []
 def check(cond, what):
     print(("ok   " if cond else "FAIL ") + what)
@@ -26,6 +31,7 @@ try:
             t0 = time.time()
             page.goto(URL)
             page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+            start(page)
             print(f"--- {name} {w}x{h}: ready in {time.time()-t0:.2f}s")
             m = page.evaluate("""() => {
               const r = (id) => document.getElementById(id).getBoundingClientRect();
@@ -143,6 +149,7 @@ try:
         page.add_init_script("window.__fast = true")
         page.goto(URL)
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+        start(page)
         seen = set(); shots = set(); plays = 0; outcome = None; said = set()
         for step in range(400):
             st = page.evaluate("() => ({mode: beatPoe.S.mode, phase: beatPoe.S.phase, idx: beatPoe.S.fight.idx, lives: beatPoe.S.lives, hp: beatPoe.S.playerHp, banner: document.getElementById('banner').hidden ? '' : document.getElementById('banner').className, splash: !!document.querySelector('.bl-zone'), wave: document.getElementById('wave').className, cursed: beatPoe.S.fight.grid.filter(t=>t.cursed).length})")
@@ -193,9 +200,56 @@ try:
         check(fin["perfect"] == fin["plays"], "every best-word play was judged perfect")
         page.locator("#ovBtn").tap()
         check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.fight.idx === 0 && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80"), "Play again starts a fresh run with 0 lives")
+        check(page.evaluate("() => document.getElementById('title').hidden"), "Play again goes straight to the fight (no title screen)")
         logs = [l for l in logs if "404" not in l]     # portraits that do not exist yet are expected to 404
         check(not logs, f"no console errors {logs[:2]}")
         ctx.close()
+
+        # ---- title screen ----
+        for name, w, h in [("se-with-bars", 375, 548), ("small-android", 360, 640), ("iphone-14", 390, 844)]:
+            ctx = b.new_context(viewport={"width": w, "height": h}, has_touch=True, is_mobile=True, device_scale_factor=2)
+            page = ctx.new_page(); logs = []
+            page.on("pageerror", lambda e: logs.append(str(e)))
+            page.on("console", lambda m: logs.append(m.text) if m.type == "error" else None)
+            page.goto(URL)
+            page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+            page.wait_for_timeout(1800)
+            check(not page.evaluate("() => document.getElementById('title').hidden"), f"title screen shows on a fresh launch ({name})")
+            m = page.evaluate("""() => { const t = document.getElementById('title'); const kids = [...t.children].map(e => e.getBoundingClientRect());
+              return {fits: Math.max(...kids.map(r => r.bottom)) <= innerHeight + 0.5 && Math.max(...kids.map(r => r.right)) <= innerWidth + 0.5,
+                      scroll: document.documentElement.scrollHeight <= innerHeight, tiles: t.querySelectorAll('.lt').length, cards: t.querySelectorAll('.pc').length,
+                      imgs: [...t.querySelectorAll('.pc img')].every(i => i.complete && i.naturalWidth > 0), play: document.getElementById('titlePlay').getBoundingClientRect().height} }""")
+            check(m["fits"] and m["scroll"], f"title fits on screen with no scrolling ({name})")
+            check(m["tiles"] == 8 and m["cards"] == 4 and m["imgs"], f"title shows 8 logo tiles and 4 author portraits ({name})")
+            check(m["play"] >= 44, f"Play is thumb-sized ({m['play']:.0f}px)")
+            page.screenshot(path=f"shots/{name}-title.png")
+            if name == "iphone-14":
+                page.locator("#titleHow").tap()
+                check(not page.evaluate("() => document.getElementById('howPanel').hidden"), "How to play opens")
+                page.screenshot(path=f"shots/{name}-title-how.png")
+                page.locator("#howClose").tap()
+                check(page.evaluate("() => document.getElementById('howPanel').hidden && !document.getElementById('title').hidden"), "Got it closes How to play and the title stays")
+                page.locator("#titleGear").tap()
+                check(page.evaluate("() => { const s = document.getElementById('settings'); const r = s.getBoundingClientRect(); return !s.hidden && document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).closest('#settings') !== null; }"), "Settings opens above the title screen")
+                page.locator("#setClose").tap()
+                tiles_before = page.evaluate("() => beatPoe.S.sel.length")
+                page.keyboard.type("abc")
+                check(page.evaluate("() => beatPoe.S.sel.length") == tiles_before, "typing does nothing while the title is up")
+                page.locator(".lt").first.tap()
+                check(page.evaluate("() => document.querySelector('.lt').classList.contains('up')"), "a logo tile lifts when tapped")
+                hp = page.evaluate("() => beatPoe.S.fight.hp"); grid0 = page.evaluate("() => JSON.stringify(beatPoe.S.fight.grid)")
+                page.locator("#titlePlay").tap()
+                page.wait_for_function("document.getElementById('title').hidden", timeout=3000)
+                check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.phase === 'player' && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80"), "Play starts a fresh run")
+                check(page.evaluate("() => { const r = document.querySelector('.tile').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).classList.contains('tile'); }"), "the board is reachable once the title is gone")
+                page.reload()
+                page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+                check(not page.evaluate("() => document.getElementById('title').hidden"), "reopening the game shows the title again")
+                page.keyboard.press("Enter")
+                page.wait_for_function("document.getElementById('title').hidden", timeout=3000)
+                check(True, "Enter starts the game from the title")
+            check(not logs, f"no console errors on the title ({name}) {logs[:2]}")
+            ctx.close()
 
         # ---- BONUS LIFE splash ----
         for calm in (False, True):
@@ -204,6 +258,7 @@ try:
             page.on("pageerror", lambda e: logs.append(str(e)))
             page.goto(URL)
             page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+            start(page)
             tag = "reduced motion: " if calm else ""
             best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: true})")
             page.evaluate("() => { beatPoe.S.fight.hp = 9999; }")          # a long fight: this play cannot kill
@@ -256,6 +311,7 @@ try:
         page = ctx.new_page()
         page.goto(URL)
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+        start(page)
         page.evaluate("""() => { const g = beatPoe.S.fight.grid; const set = (i, ch, qu) => { g[i].ch = ch; g[i].qu = !!qu; g[i].cursed = false; };
            for (let i = 0; i < 16; i++) set(i, 'B'); set(0,'Q',true); set(1,'I'); set(2,'T'); set(3,'E'); set(4,'U'); set(5,'Q'); beatPoe.render(); }""")
         page.keyboard.type("quit")
@@ -279,6 +335,7 @@ try:
         check(before != after, f"F2 toggles the best-word list ({before} -> {after})")
         page.reload()
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+        start(page)
         check(page.evaluate("() => beatPoe.L.commonOnly") == after, "the setting survives a reload (localStorage)")
         t = page.evaluate("() => beatPoe.S.fight.turn")
         page.keyboard.press("Tab")

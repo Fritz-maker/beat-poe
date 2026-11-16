@@ -44,6 +44,8 @@ No build step and no dependencies: plain HTML, CSS and JavaScript modules.
 | `js/logic.js` | The rules, with the tuning knobs (foe stats, letter values, curse settings) at the top |
 | `js/lines.js` | What each author says at each game moment, with the source of every genuine quotation |
 | `js/main.js` | The interface |
+| `js/title.js` | The title screen shown when the game is opened |
+| `js/bonus.js` | The BONUS LIFE splash (flash, sunbursts, confetti) |
 | `css/style.css`, `css/themes.css` | Layout, and one colour-and-font theme per author |
 | `data/` | Word lists: every playable word, and the common words used for the best-word check |
 | `art/`, `fonts/`, `icons/` | Portraits, typefaces and app icons |

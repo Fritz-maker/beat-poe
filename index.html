@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Beat Poe!">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 <link rel="stylesheet" href="css/themes.css?v=1">
 </head>
 <body>
@@ -86,6 +86,40 @@
     </span>
   </section>
 
+  <!-- the title screen: shown once when the game is opened (js/title.js) -->
+  <div class="title" id="title" role="dialog" aria-label="Beat Poe!" hidden>
+    <header class="ti-top">
+      <span class="ti-brand">Wardo Studio</span>
+      <button id="titleGear" class="icon" aria-label="Settings">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>
+      </button>
+    </header>
+    <h1 class="ti-logo" id="logo" aria-label="Beat Poe!"></h1>
+    <p class="ti-tag">A word duel against <span>four authors</span></p>
+    <section>
+      <div class="ti-line" id="lineA"></div>
+      <div class="ti-cap">Beat all four to win. Poe waits at the end.</div>
+    </section>
+    <section class="ti-cta">
+      <button class="play primary" id="titlePlay">Play</button>
+      <button class="how" id="titleHow">How to play</button>
+    </section>
+    <footer class="ti-foot">Spell long words, hit hard, and earn bonus lives.<br>By Wardo Studio &middot; works offline once loaded</footer>
+  </div>
+
+  <div class="overlay" id="howPanel" hidden>
+    <div class="card panel">
+      <h1>How to play</h1>
+      <ol class="howlist">
+        <li>Tap tiles to spell a word of <b>3+ letters</b>, then tap <b>Play</b>.</li>
+        <li>Long words and rare letters hit much harder.</li>
+        <li>Every few turns a <b>curse wave</b> turns tiles into hard letters.</li>
+        <li>Play the <b>best word</b> the grid allows to earn a <b>bonus life</b> for the final fight.</li>
+      </ol>
+      <button id="howClose" class="primary">Got it</button>
+    </div>
+  </div>
+
   <div class="overlay" id="overlay" hidden>
     <div class="card">
       <h1 id="ovTitle"></h1>
@@ -128,6 +162,6 @@
     </div>
   </div>
 </main>
-<script type="module" src="js/main.js?v=9"></script>
+<script type="module" src="js/main.js?v=10"></script>
 </body>
 </html>

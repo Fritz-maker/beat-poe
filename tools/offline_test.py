@@ -18,7 +18,7 @@ try:
         pg.wait_for_function("navigator.serviceWorker.controller !== null", timeout=20000)
         n = 0
         for _ in range(40):
-            n = pg.evaluate("async () => { const c = await caches.open('beat-poe-v1'); return (await c.keys()).length }")
+            n = pg.evaluate("async () => { const names = await caches.keys(); if (!names.length) return 0; const c = await caches.open(names[0]); return (await c.keys()).length }")
             if n >= 30: break
             pg.wait_for_timeout(500)
         check(n >= 30, f"all {n} files saved for offline play")
@@ -29,6 +29,8 @@ try:
         ctx.set_offline(True)
         pg.reload()
         pg.wait_for_function("window.beatPoe && beatPoe.S.mode === 'fight'", timeout=30000)
+        pg.locator("#titlePlay").click()                 # the title screen shows after a reload
+        pg.wait_for_function("document.getElementById('title').hidden", timeout=3000)
         check(True, "the game starts with no network at all")
         check(pg.evaluate("() => beatPoe.L.wordArr.length") == 271684, "word list loaded from the saved copy")
         pg.wait_for_function("!document.getElementById('faceImg').hidden", timeout=5000)
