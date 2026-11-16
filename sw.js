@@ -3,13 +3,14 @@
 //   with the saved copy as the fallback when offline.
 // - The big, rarely-changing files (word lists and fonts) come from the saved copy first.
 // Change CACHE when the list of files below changes.
-const CACHE = 'beat-poe-v1';
+const CACHE = 'beat-poe-v2';
 const FILES = [
   './',
   'index.html',
   'manifest.webmanifest',
   'css/style.css',
   'css/themes.css',
+  'js/bonus.js',
   'js/lines.js',
   'js/logic.js',
   'js/main.js',

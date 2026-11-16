@@ -1,6 +1,7 @@
 // main.js : Beat Poe! plain playable skeleton (no author art or popups yet).
 import L from './logic.js';
 import { LINES, LOW_HP, reactionKey, foeTurnKey } from './lines.js';
+import { playBonusLife, SPLASH_MS } from './bonus.js';
 
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = 'beatpoe.settings';
@@ -37,6 +38,7 @@ const S = {
   note: null,                     // { text, kind }: a short system note shown under the word tray
   totalPlays: 0, totalPerfect: 0,
   healed: 0,
+  holdLives: null,                // while the bonus-life splash plays, the counter keeps showing the old number
 };
 
 // ---------------------------------------------------------------------------
@@ -58,6 +60,8 @@ function saveSettings() {
 // ---------------------------------------------------------------------------
 const tiles = [];
 let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0, resultTimer = 0;
+let stopSplash = null;            // stops the BONUS LIFE splash if one is playing
+
 
 // What the foe says (the speech bubble on the stage). " / " in a line is a verse line break.
 function say(text) {
@@ -121,6 +125,19 @@ function showBanner(kind, title, sub) {
 }
 function hideBanner() { clearTimeout(bannerTimer); $('banner').hidden = true; }
 
+// The BONUS LIFE splash (js/bonus.js). The lives counter keeps its old number until the star lands in it.
+function startSplash() {
+  endSplash();
+  S.holdLives = S.lives - 1;
+  const done = () => { stopSplash = null; S.holdLives = null; render(); };
+  const stop = playBonusLife({
+    app: $('app'), wallEl: document.querySelector('.wall'), livesEl: $('lives'), livesNumEl: $('livesNum'),
+    lives: S.lives, onLand: () => { S.holdLives = null; render(); }, onDone: done,
+  });
+  stopSplash = () => { stop(); stopSplash = null; S.holdLives = null; };
+}
+function endSplash() { if (stopSplash) stopSplash(); S.holdLives = null; }
+
 function disarmScramble() {
   clearTimeout(scrambleTimer);
   const b = $('btnScramble');
@@ -171,9 +188,10 @@ function render() {
   const php = Math.max(0, Math.ceil(S.playerHp));
   $('youFill').style.width = (100 * php / L.PLAYER_MAX_HP) + '%';
   $('youHp').textContent = `You ${php} / ${L.PLAYER_MAX_HP}`;
-  $('livesNum').textContent = S.lives;
-  $('lives').className = 'lives' + (S.lives > 0 ? ' has' : '');
-  $('lives').setAttribute('aria-label', `${S.lives} bonus lives`);
+  const shown = S.holdLives !== null ? S.holdLives : S.lives;
+  $('livesNum').textContent = shown;
+  $('lives').className = 'lives' + (shown > 0 ? ' has' : '');
+  $('lives').setAttribute('aria-label', `${shown} bonus lives`);
 
   // tiles
   const order = new Map(S.sel.map((idx, k) => [idx, k + 1]));
@@ -273,6 +291,7 @@ function startFight(idx) {
   S.foeCross = false;
   S.overlayReady = false;
   clearTimeout(resultTimer);
+  endSplash();
   checkArt(S.fight.enemy.id);
   hideBanner(); disarmScramble();
   $('overlay').hidden = true;
@@ -286,6 +305,7 @@ function startRun() {
   S.playerHp = L.PLAYER_MAX_HP;
   S.lives = 0;
   S.totalPlays = 0; S.totalPerfect = 0;
+  endSplash();
   startFight(0);
 }
 
@@ -345,7 +365,8 @@ function submit() {
   const reaction = reactionKey(verdict, res.word.length);
   f.held = false;
   if (verdict === 'perfect') {
-    showBanner('life', 'BONUS LIFE!', `Perfect word! Lives saved for the final fight: ${S.lives}`);
+    hideBanner();
+    startSplash();
   } else if (verdict === 'close') {
     showBanner('close', 'Nice try, you were close!', `${res.best.dmg - res.dmg} damage short of ${res.best.word}`);
   } else {
@@ -368,6 +389,7 @@ function submit() {
     restartAnim($('foeBox'), 'shake');
     if (art) restartAnim($('faceImg'), 'cross-in');
     clearTimeout(resultTimer);
+    // a perfect killing blow lets the splash play out before the result card appears
     resultTimer = setTimeout(() => {
       if (last) {
         showOverlay('You beat Poe!',
@@ -378,7 +400,7 @@ function submit() {
           `You recovered ${heal} HP.\nLongest word: ${f.longest}\nBest-word hits: ${f.perfect} / ${f.plays}`,
           'good', 'Next foe');
       }
-    }, RESULT_DELAY);
+    }, verdict === 'perfect' ? Math.max(RESULT_DELAY, SPLASH_MS) : RESULT_DELAY);
     return;
   }
   beginEnemyPhase();
@@ -436,6 +458,7 @@ function enemyTurn() {
   } else if (S.playerHp <= 0) {
     S.playerHp = 0;
     S.mode = 'defeat';
+    endSplash();
     say('');                                      // the foe's last word goes on the result card
     const last = (LINES[f.enemy.id] || {}).win;
     showOverlay(`${f.enemy.name} wins`,

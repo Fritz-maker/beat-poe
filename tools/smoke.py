@@ -145,14 +145,14 @@ try:
         page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
         seen = set(); shots = set(); plays = 0; outcome = None; said = set()
         for step in range(400):
-            st = page.evaluate("() => ({mode: beatPoe.S.mode, phase: beatPoe.S.phase, idx: beatPoe.S.fight.idx, lives: beatPoe.S.lives, hp: beatPoe.S.playerHp, banner: document.getElementById('banner').hidden ? '' : document.getElementById('banner').className, wave: document.getElementById('wave').className, cursed: beatPoe.S.fight.grid.filter(t=>t.cursed).length})")
+            st = page.evaluate("() => ({mode: beatPoe.S.mode, phase: beatPoe.S.phase, idx: beatPoe.S.fight.idx, lives: beatPoe.S.lives, hp: beatPoe.S.playerHp, banner: document.getElementById('banner').hidden ? '' : document.getElementById('banner').className, splash: !!document.querySelector('.bl-zone'), wave: document.getElementById('wave').className, cursed: beatPoe.S.fight.grid.filter(t=>t.cursed).length})")
             seen.add(st["mode"])
             # whatever the foe is saying must be one of that foe's lines, and must fit inside the stage
             bub = page.evaluate("() => { const f = beatPoe.S.fight, set = beatPoe.LINES[f.enemy.id]; const all = Object.values(set).flat().map(l => l.replaceAll(' / ', '\\n')); const m = document.getElementById('msg'); return {ok: all.includes(m.textContent), text: m.textContent, fits: m.getBoundingClientRect().bottom <= document.querySelector('.foebar').getBoundingClientRect().top + 1} }")
             if not bub["ok"]: check(False, f"bubble shows a known line (got {bub['text']!r})")
             if not bub["fits"]: check(False, f"bubble fits in the stage ({bub['text']!r})")
             said.add(bub["text"])
-            for key, cond in [("banner-life", "life" in st["banner"]), ("banner-close", "close" in st["banner"]),
+            for key, cond in [("splash-life", st["splash"]), ("banner-close", "close" in st["banner"]),
                               ("wave-soon", "soon" in st["wave"] and st["cursed"] > 0), (st["mode"], st["mode"] != "fight")]:
                 if cond and key not in shots:
                     shots.add(key); page.screenshot(path=f"shots/run-{key}.png")
@@ -196,6 +196,60 @@ try:
         logs = [l for l in logs if "404" not in l]     # portraits that do not exist yet are expected to 404
         check(not logs, f"no console errors {logs[:2]}")
         ctx.close()
+
+        # ---- BONUS LIFE splash ----
+        for calm in (False, True):
+            ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, reduced_motion="reduce" if calm else "no-preference")
+            page = ctx.new_page(); logs = []
+            page.on("pageerror", lambda e: logs.append(str(e)))
+            page.goto(URL)
+            page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+            tag = "reduced motion: " if calm else ""
+            best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: true})")
+            page.evaluate("() => { beatPoe.S.fight.hp = 9999; }")          # a long fight: this play cannot kill
+            layout = lambda: page.evaluate("() => [...document.getElementById('app').children].filter(e => !e.hidden && !e.classList.contains('bl-root')).map(e => Math.round(e.getBoundingClientRect().height)).join()")
+            before = layout()
+            for i in best["tiles"]: page.locator(".tile").nth(i).tap()
+            t0 = time.time(); page.locator("#btnPlay").tap()
+            check(page.evaluate("() => beatPoe.S.lives") == 1, tag + "a perfect word earns a bonus life")
+            check(page.locator(".bl-zone").count() == 1 and page.locator(".bl-title").inner_text().replace("\n", " ").upper().startswith("BONUS"), tag + "the BONUS LIFE splash appears")
+            check(page.evaluate("() => document.getElementById('banner').hidden"), tag + "the old tray banner is not used for bonus lives")
+            check(page.evaluate("() => document.getElementById('livesNum').textContent") == "0", tag + "counter keeps its old number while the splash plays")
+            check(page.locator(".bl-confetti").count() == (0 if calm else 1), tag + ("no confetti" if calm else "confetti canvas present"))
+            check(layout() == before, tag + "the splash does not shift the layout")
+            check(page.evaluate("() => { const r = document.querySelector('.tile').getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2).classList.contains('tile'); }"), tag + "taps reach the tiles through the splash")
+            page.wait_for_function("document.querySelectorAll('.bl-root').length === 0", timeout=6000)
+            took = time.time() - t0
+            check((2.2 <= took <= 3.0) if calm else (3.6 <= took <= 4.3), tag + f"the splash ends by itself ({took:.1f}s)")
+            check(page.evaluate("() => document.getElementById('livesNum').textContent") == "1" and page.evaluate("() => document.getElementById('lives').classList.contains('has')"), tag + "counter reads 1 afterwards")
+            # a second perfect word in the middle of the first splash leaves just one splash
+            page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
+            best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: true})")
+            for i in best["tiles"]: page.locator(".tile").nth(i).tap()
+            page.locator("#btnPlay").tap(); page.wait_for_timeout(1200)
+            page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
+            best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: true})")
+            for i in best["tiles"]: page.locator(".tile").nth(i).tap()
+            page.locator("#btnPlay").tap(); page.wait_for_timeout(300)
+            check(page.locator(".bl-root").count() == 1, tag + "a new bonus life restarts the splash instead of stacking")
+            page.wait_for_function("document.querySelectorAll('.bl-root').length === 0", timeout=6000)
+            check(page.evaluate("() => document.getElementById('livesNum').textContent") == "3", tag + "counter reads 3 after three perfect words")
+            # a perfect killing blow: the result card waits for the splash
+            page.wait_for_function("beatPoe.S.phase === 'player'", timeout=3000)
+            best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: true})")
+            page.evaluate("(d) => { beatPoe.S.fight.hp = d; }", best["dmg"])
+            for i in best["tiles"]: page.locator(".tile").nth(i).tap()
+            t0 = time.time(); page.locator("#btnPlay").tap()
+            check(page.evaluate("() => beatPoe.S.mode") == "victory", tag + "the killing blow wins the fight")
+            page.wait_for_timeout(2200 if not calm else 2000)
+            check(page.evaluate("() => document.getElementById('overlay').hidden"), tag + "result card is still waiting while the splash plays")
+            page.locator("#ovBtn").wait_for(state="visible", timeout=6000)
+            check(page.locator(".bl-root").count() == 0, tag + "splash is gone when the result card appears")
+            page.locator("#ovBtn").tap()
+            page.wait_for_function("beatPoe.S.mode === 'fight'")
+            check(page.locator(".bl-root").count() == 0, tag + "starting the next foe leaves no splash behind")
+            check(not logs, tag + f"no page errors {logs[:2]}")
+            ctx.close()
 
         # ---- desktop + keyboard ----
         ctx = b.new_context(viewport={"width": 1280, "height": 800})
