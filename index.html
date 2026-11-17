@@ -12,8 +12,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Beat Poe!">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 <link rel="stylesheet" href="css/themes.css?v=1">
+<!-- visitor counts (no cookies): https://wardostudio.goatcounter.com -->
+<script data-goatcounter="https://wardostudio.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
 <main id="app" class="loading">
@@ -124,8 +126,27 @@
     <div class="card">
       <h1 id="ovTitle"></h1>
       <p id="ovText"></p>
-      <button id="ovBtn" class="primary">Continue</button>
+      <div class="row2"><button id="ovBtn" class="primary">Continue</button><button id="ovShare" class="share" hidden>Share</button></div>
     </div>
+  </div>
+
+  <!-- the end of a winning run (js/victory.js) -->
+  <div class="vic" id="vic" role="dialog" aria-label="You beat Poe!" hidden>
+    <div class="ray a"></div><div class="ray b"></div>
+    <div class="v-poe"><img src="art/poe-cross.webp" alt="Poe, beaten"></div>
+    <div>
+      <h1 class="v-title"><span>You beat</span><span>Poe!</span></h1>
+      <p class="v-quip">Quoth the raven, &ldquo;Nevermore.&rdquo; Quoth you, &ldquo;Encore!&rdquo;</p>
+    </div>
+    <div class="v-line" id="vLine"></div>
+    <div class="v-stats">
+      <div><b id="vBest"></b><small>best words</small></div>
+      <div><b id="vLongest"></b><small>longest word</small></div>
+      <div><b id="vLives"></b><small>lives to spare</small></div>
+    </div>
+    <div class="v-btns"><button class="share" id="vShare">Share</button><button class="primary" id="vAgain">Play again</button></div>
+    <canvas class="v-confetti" id="vConf" aria-hidden="true"></canvas>
+    <div class="flash"></div>
   </div>
 
   <div class="overlay" id="review" hidden>
@@ -162,6 +183,6 @@
     </div>
   </div>
 </main>
-<script type="module" src="js/main.js?v=10"></script>
+<script type="module" src="js/main.js?v=11"></script>
 </body>
 </html>

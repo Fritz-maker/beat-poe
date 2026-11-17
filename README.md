@@ -46,6 +46,9 @@ No build step and no dependencies: plain HTML, CSS and JavaScript modules.
 | `js/main.js` | The interface |
 | `js/title.js` | The title screen shown when the game is opened |
 | `js/bonus.js` | The BONUS LIFE splash (flash, sunbursts, confetti) |
+| `js/victory.js` | The "You beat Poe!" screen at the end of a winning run |
+| `js/share.js` | The Share button's summary text |
+| `js/stats.js` | Visitor counts with GoatCounter (no cookies): wardostudio.goatcounter.com |
 | `css/style.css`, `css/themes.css` | Layout, and one colour-and-font theme per author |
 | `data/` | Word lists: every playable word, and the common words used for the best-word check |
 | `art/`, `fonts/`, `icons/` | Portraits, typefaces and app icons |

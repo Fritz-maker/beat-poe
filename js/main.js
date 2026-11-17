@@ -3,6 +3,9 @@ import L from './logic.js';
 import { LINES, LOW_HP, reactionKey, foeTurnKey } from './lines.js';
 import { playBonusLife, SPLASH_MS } from './bonus.js';
 import { initTitle } from './title.js';
+import { showVictory } from './victory.js';
+import { shareText, share } from './share.js';
+import { track } from './stats.js';
 
 const $ = (id) => document.getElementById(id);
 const SETTINGS_KEY = 'beatpoe.settings';
@@ -38,6 +41,7 @@ const S = {
   reveal: null,                   // result of the last play, for the last-word line
   note: null,                     // { text, kind }: a short system note shown under the word tray
   totalPlays: 0, totalPerfect: 0,
+  runLongest: '',                 // the longest word of the whole run (for the share text)
   healed: 0,
   holdLives: null,                // while the bonus-life splash plays, the counter keeps showing the old number
 };
@@ -62,7 +66,8 @@ function saveSettings() {
 const tiles = [];
 let bannerTimer = 0, scrambleTimer = 0, enemyTimer = 0, resultTimer = 0;
 let title = null;                 // the title screen (js/title.js), shown once when the game is opened
-let stopSplash = null;            // stops the BONUS LIFE splash if one is playing
+let stopSplash = null;
+let stopVictory = null;           // hides the victory screen if it is up            // stops the BONUS LIFE splash if one is playing
 
 
 // What the foe says (the speech bubble on the stage). " / " in a line is a verse line break.
@@ -271,6 +276,7 @@ function showOverlay(title, text, kind, button) {
   $('ovTitle').className = kind;
   $('ovText').textContent = text;
   $('ovBtn').textContent = button;
+  $('ovShare').hidden = true;                     // only the loss card offers Share (set after this call)
   $('overlay').hidden = false;
 }
 
@@ -306,8 +312,9 @@ function startFight(idx) {
 function startRun() {
   S.playerHp = L.PLAYER_MAX_HP;
   S.lives = 0;
-  S.totalPlays = 0; S.totalPerfect = 0;
+  S.totalPlays = 0; S.totalPerfect = 0; S.runLongest = '';
   endSplash();
+  if (stopVictory) { stopVictory(); stopVictory = null; }
   startFight(0);
 }
 
@@ -359,6 +366,7 @@ function submit() {
   const verdict = L.judge(res.dmg, res.best.dmg);
   if (verdict === 'perfect') { f.perfect++; S.totalPerfect++; S.lives++; }
   if (res.word.length > f.longest.length) f.longest = res.word;
+  if (res.word.length > S.runLongest.length) S.runLongest = res.word;
   S.reveal = res;
   clearSel();
 
@@ -383,6 +391,7 @@ function submit() {
     S.healed = heal;
     const last = f.idx >= L.ENEMIES.length - 1;
     if (last) S.mode = 'won';
+    track(last ? 'won' : `beat-${f.enemy.id}`);
     // the beaten foe turns cross; the result card follows after a beat
     S.foeCross = true;
     const art = faceOf(f.enemy.id);
@@ -394,9 +403,7 @@ function submit() {
     // a perfect killing blow lets the splash play out before the result card appears
     resultTimer = setTimeout(() => {
       if (last) {
-        showOverlay('You beat Poe!',
-          `Best-word hits this run: ${S.totalPerfect} / ${S.totalPlays}\nLongest word: ${f.longest}`,
-          'warn', 'Play again');
+        showWin();
       } else {
         showOverlay(`${f.enemy.name} is defeated!`,
           `You recovered ${heal} HP.\nLongest word: ${f.longest}\nBest-word hits: ${f.perfect} / ${f.plays}`,
@@ -461,11 +468,13 @@ function enemyTurn() {
     S.playerHp = 0;
     S.mode = 'defeat';
     endSplash();
+    track(`lost-to-${f.enemy.id}`);
     say('');                                      // the foe's last word goes on the result card
     const last = (LINES[f.enemy.id] || {}).win;
     showOverlay(`${f.enemy.name} wins`,
       `${last ? `\u201c${last}\u201d\n\n` : ''}Best-word hits this run: ${S.totalPerfect} / ${S.totalPlays}`,
       'bad', 'Try again');
+    $('ovShare').hidden = false;
   } else {
     S.phase = 'player';
     if (replaced) note(`Curse wave! ${replaced.length} tiles turned to hard letters.`, 'warn');
@@ -485,7 +494,22 @@ function enemyTurn() {
 function advance() {
   if (!S.overlayReady) return;                    // the result card is not up yet
   if (S.mode === 'victory') startFight(S.fight.idx + 1);
-  else if (S.mode === 'defeat' || S.mode === 'won') startRun();
+  else if (S.mode === 'defeat' || S.mode === 'won') { track('run-start'); startRun(); }
+}
+
+// The end of a winning run: the big victory screen (js/victory.js).
+function showWin() {
+  hideBanner();
+  stopVictory = showVictory({ best: S.totalPerfect, plays: S.totalPlays, longest: S.runLongest, lives: S.lives });
+  clearTimeout(resultTimer);
+  resultTimer = setTimeout(() => { S.overlayReady = true; }, 3000);   // the buttons arrive at about 3 s
+}
+
+// Share: a short summary of the run. beaten = how many foes fell (4 when the run was won).
+function shareRun(btn) {
+  const beaten = S.mode === 'won' ? L.ENEMIES.length : S.fight.idx;
+  track(S.mode === 'won' ? 'share-win' : 'share-loss');
+  share(btn, shareText({ beaten, best: S.totalPerfect, plays: S.totalPlays, longest: S.runLongest, every: !L.commonOnly }));
 }
 
 function setCommon(on) {
@@ -595,6 +619,9 @@ function wire() {
   $('msg').addEventListener('animationend', () => $('msg').classList.remove('pop'));
   $('faceImg').addEventListener('animationend', () => $('faceImg').classList.remove('cross-in'));
   $('ovBtn').addEventListener('click', advance);
+  $('ovShare').addEventListener('click', () => shareRun($('ovShare')));
+  $('vShare').addEventListener('click', () => shareRun($('vShare')));
+  $('vAgain').addEventListener('click', advance);
   for (const id of ['foeBox', 'youBox']) {
     $(id).addEventListener('animationend', () => $(id).classList.remove('shake'));
   }
@@ -637,7 +664,7 @@ function wire() {
 
 async function boot() {
   buildTiles();
-  title = initTitle({ onPlay: () => startRun(), onSettings: openSettings });
+  title = initTitle({ onPlay: () => { track('run-start'); startRun(); }, onSettings: openSettings });
   wire();
   try {
     const [words, common] = await Promise.all(['data/words.txt', 'data/common.txt'].map(async (url) => {

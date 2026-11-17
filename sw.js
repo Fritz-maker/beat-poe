@@ -3,7 +3,7 @@
 //   with the saved copy as the fallback when offline.
 // - The big, rarely-changing files (word lists and fonts) come from the saved copy first.
 // Change CACHE when the list of files below changes.
-const CACHE = 'beat-poe-v3';
+const CACHE = 'beat-poe-v4';
 const FILES = [
   './',
   'index.html',
@@ -14,7 +14,10 @@ const FILES = [
   'js/lines.js',
   'js/logic.js',
   'js/main.js',
+  'js/share.js',
+  'js/stats.js',
   'js/title.js',
+  'js/victory.js',
   'art/dickinson-cross.webp',
   'art/dickinson-normal.webp',
   'art/poe-cross.webp',

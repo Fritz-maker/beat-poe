@@ -21,6 +21,14 @@ def check(cond, what):
 try:
     with sync_playwright() as p:
         b = p.chromium.launch(channel="chrome", headless=True)
+        # GoatCounter is replaced by a stub that records the events the game sends
+        GC_STUB = "window.goatcounter = {count: function (o) { (window.__gc = window.__gc || []).push(o.path); }};"
+        _new_context = b.new_context
+        def new_context(**kw):
+            c = _new_context(**kw)
+            c.route("**/gc.zgo.at/**", lambda r: r.fulfill(status=200, content_type="application/javascript", body=GC_STUB))
+            return c
+        b.new_context = new_context
         # ---- phone-sized, touch ----
         for name, w, h in [("se-with-bars", 375, 548), ("small-android", 360, 640), ("pixel-9a", 412, 763), ("iphone-14", 390, 844)]:
             ctx = b.new_context(viewport={"width": w, "height": h}, has_touch=True, is_mobile=True, device_scale_factor=2)
@@ -198,11 +206,71 @@ try:
         check(outcome == "won", "a perfect-play bot wins a whole run through the UI")
         check(len(said) >= 8, f"the foes said {len(said)} different lines during the run")
         check(fin["perfect"] == fin["plays"], "every best-word play was judged perfect")
-        page.locator("#ovBtn").tap()
-        check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.fight.idx === 0 && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80"), "Play again starts a fresh run with 0 lives")
+        # ---- the victory screen ----
+        check(page.evaluate("() => document.getElementById('overlay').hidden"), "winning the run does not use the small result card")
+        page.locator("#vic").wait_for(state="visible", timeout=6000)
+        page.locator("#vAgain").wait_for(state="visible", timeout=3000)
+        page.wait_for_timeout(3300)
+        page.screenshot(path="shots/run-victory.png")
+        v = page.evaluate("""() => { const v = document.getElementById('vic'); const kids = [...v.children].filter(e => !e.classList.contains('ray') && !e.classList.contains('flash') && e.tagName !== 'CANVAS');
+          return {fits: kids.every(e => { const r = e.getBoundingClientRect(); return r.bottom <= innerHeight + .5 && r.left >= -.5 && r.right <= innerWidth + .5; }),
+                  cards: v.querySelectorAll('.v-line .pc').length, cross: [...v.querySelectorAll('.v-line img')].every(i => i.complete && i.naturalWidth > 0 && i.src.includes('-cross')),
+                  best: document.getElementById('vBest').textContent, longest: document.getElementById('vLongest').textContent, lives: document.getElementById('vLives').textContent,
+                  run: beatPoe.S.runLongest, tp: beatPoe.S.totalPerfect, pl: beatPoe.S.totalPlays, sl: beatPoe.S.lives,
+                  stamp: getComputedStyle(v.querySelector('.pc.final'), '::after').content, confetti: !!v.querySelector('canvas.v-confetti') } }""")
+        check(v["fits"], "the victory screen fits on the phone")
+        check(v["cards"] == 4 and v["cross"], "all four authors show their cross faces")
+        check(v["stamp"] == '"NEVERMORE"', f"Poe's stamp reads NEVERMORE ({v['stamp']})")
+        check(v["best"] == f"{v['tp']} / {v['pl']}" and v["longest"] == v["run"] and v["lives"] == str(v["sl"]) and len(v["run"]) >= 3, f"the victory numbers match the run {v['best']}, {v['longest']}, {v['lives']}")
+        ctx.grant_permissions(["clipboard-read", "clipboard-write"])
+        page.locator("#vShare").tap()
+        page.wait_for_function("document.getElementById('vShare').textContent === 'Copied!'", timeout=3000)
+        clip = page.evaluate("() => navigator.clipboard.readText()")
+        print("--- share text (win):\n" + clip)
+        check(clip.startswith("Beat Poe! \u2014 I beat Poe!") and "\u2705 Twain  \u2705 Dickinson  \u2705 Shelley  \u2705 Poe" in clip
+              and f"Best words: {v['tp']} of {v['pl']} plays" in clip and v["run"] in clip and "https://fritz-maker.github.io/beat-poe/" in clip and "every-word" not in clip, "Share copies the winning summary")
+        gc = page.evaluate("() => window.__gc || []")
+        check(gc[:1] == ["run-start"] and gc.count("beat-twain") == 1 and "beat-dickinson" in gc and "beat-shelley" in gc and "won" in gc and "share-win" in gc, f"GoatCounter events sent {gc}")
+        page.locator("#vAgain").tap()
+        check(page.evaluate("() => document.getElementById('vic').hidden"), "Play again closes the victory screen")
+        check(page.evaluate("() => beatPoe.S.mode === 'fight' && beatPoe.S.fight.idx === 0 && beatPoe.S.lives === 0 && beatPoe.S.playerHp === 80 && beatPoe.S.runLongest === ''"), "Play again starts a fresh run with 0 lives")
+        check(page.evaluate("() => window.__gc.filter(e => e === 'run-start').length") == 2, "the new run is counted")
         check(page.evaluate("() => document.getElementById('title').hidden"), "Play again goes straight to the fight (no title screen)")
         logs = [l for l in logs if "404" not in l]     # portraits that do not exist yet are expected to 404
         check(not logs, f"no console errors {logs[:2]}")
+        ctx.close()
+
+        # ---- losing, and sharing the loss ----
+        ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True)
+        ctx.grant_permissions(["clipboard-read", "clipboard-write"])
+        page = ctx.new_page(); logs = []
+        page.on("pageerror", lambda e: logs.append(str(e)))
+        page.goto(URL)
+        page.wait_for_function("window.beatPoe && window.beatPoe.S.mode === 'fight'", timeout=30000)
+        start(page)
+        page.evaluate("() => { beatPoe.S.fight.hp = 9999; beatPoe.L.commonOnly = false; beatPoe.render(); }")   # every-word mode, and a foe that cannot die
+        best = page.evaluate("() => beatPoe.L.bestWord(beatPoe.S.fight.grid, {common: false})")
+        for i in best["tiles"]: page.locator(".tile").nth(i).tap()
+        page.locator("#btnPlay").tap()
+        page.wait_for_function("beatPoe.S.phase === 'player' || beatPoe.S.mode !== 'fight'", timeout=4000)
+        page.evaluate("() => { beatPoe.S.playerHp = 1; }")
+        page.wait_for_function("document.querySelectorAll('.bl-root').length === 0", timeout=6000)
+        word = page.evaluate("() => beatPoe.S.runLongest")
+        page.locator("#btnScramble").tap(); page.locator("#btnScramble").tap()       # a free hit for Twain finishes us
+        page.locator("#ovBtn").wait_for(state="visible", timeout=4000)
+        check(page.evaluate("() => beatPoe.S.mode") == "defeat" and page.locator("#ovShare").is_visible(), "the loss card has a Share button")
+        page.screenshot(path="shots/loss-card.png")
+        page.locator("#ovShare").tap()
+        page.wait_for_function("document.getElementById('ovShare').textContent === 'Copied!'", timeout=3000)
+        clip = page.evaluate("() => navigator.clipboard.readText()")
+        print("--- share text (loss):\n" + clip)
+        check(clip.startswith("Beat Poe! \u2014 Twain beat me. (every-word mode)") and "\u274C Twain  \u2B1C Dickinson  \u2B1C Shelley  \u2B1C Poe" in clip
+              and "Best words: 1 of 1 plays" in clip and f"Longest: {word} ({len(word)})" in clip, "Share copies the losing summary, marked every-word")
+        gc = page.evaluate("() => window.__gc || []")
+        check(gc == ["run-start", "lost-to-twain", "share-loss"], f"GoatCounter events for a loss {gc}")
+        page.locator("#ovBtn").tap()
+        check(not page.locator("#ovShare").is_visible() and page.evaluate("() => beatPoe.S.mode") == "fight", "Try again starts over")
+        check(not logs, f"no page errors {logs[:2]}")
         ctx.close()
 
         # ---- title screen ----
