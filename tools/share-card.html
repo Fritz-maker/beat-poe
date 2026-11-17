@@ -1,0 +1,44 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<!-- Source of art/share-card.jpg (the link-preview picture). To remake it: open this page at 1200x630 and save a screenshot. -->
+<link rel="stylesheet" href="../css/style.css">
+<style>
+*, *::before, *::after { animation: none !important; transition: none !important; }
+html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+body { background:
+    radial-gradient(90% 80% at 15% 0%, rgba(122,47,61,.6) 0%, transparent 60%),
+    radial-gradient(80% 70% at 100% 100%, rgba(46,58,115,.55) 0%, transparent 65%), #120d16;
+  display: grid; grid-template-columns: 590px 1fr; align-items: center; padding: 0 44px 0 52px; box-sizing: border-box; color: #f3ead8; font-family: Inter, system-ui, sans-serif; }
+.ti-logo { --tw: 118px; display: grid; gap: 14px; justify-content: start; margin: 0; }
+.ti-row { justify-content: start; }
+h2 { margin: 30px 0 0; font: 400 34px/1.2 "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; color: #f6e6c4; }
+h2 span { color: #ffd23f; }
+.sub { margin: 14px 0 0; font-size: 21px; color: #cdbfd4; line-height: 1.4; }
+.url { margin-top: 22px; font-size: 19px; color: #9f92a8; letter-spacing: .02em; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pc { border-radius: 16px; }
+.pc img { aspect-ratio: 1.12; }
+.pc b { font-size: 24px; padding: 6px 2px 8px; }
+.pc.final { outline-width: 3px; }
+.pc.final em { font-size: 13px; padding: 4px 9px; }
+</style></head><body>
+<div>
+  <div class="ti-logo" id="logo"></div>
+  <h2>A word duel against <span>four authors</span></h2>
+  <p class="sub">Spell long words, dodge curse waves,<br>and save bonus lives for Poe.</p>
+  <div class="url">fritz-maker.github.io/beat-poe &middot; free, no sign-up</div>
+</div>
+<div class="grid4" id="g"></div>
+<script>
+const LOGO = [
+  [['B','1.5','"Rye"',400,'#f1dfb6','#3b2414',0],['E','1','"Alfa Slab One"',400,'#f6f1e3','#2f3a2c',0],['A','1','"Cormorant Garamond"',700,'#cfdcc6','#1c2a22',0],['T','1','"Pirata One"',400,'#ddd5c3','#1d1418',0]],
+  [['P','1.5','"Special Elite"',400,'#cfdcc6','#1c2a22','6%'],['O','1','"IM Fell English SC"',400,'#ddd5c3','#1d1418',0],['E','1','"Rye"',400,'#f1dfb6','#3b2414',0],['!','','"Alfa Slab One"',400,'','',0]]];
+const TILT=[-2,1.5,-1,2,1,-2,1.5,-1]; let k=0;
+for (const row of LOGO) { const r=document.createElement('div'); r.className='ti-row';
+  for (const [ch,v,f,w,t,ink,pt] of row) { const b=document.createElement('div'); b.className='lt'+(ch==='!'?' cursed':'');
+    b.style.cssText=`--f:${f};--w:${w};--t:${t};--k:${ink};--pt:${pt};--i:${k};--r:${TILT[k]}deg`; b.textContent=ch;
+    if (v) { const s=document.createElement('small'); s.textContent=v; b.append(s); } r.append(b); k++; }
+  document.getElementById('logo').append(r); }
+const F=[['twain','Twain','linear-gradient(180deg,#2c5563,#1d3742)','#4c7482','#f4e6c8','"Rye"'],['dickinson','Dickinson','linear-gradient(180deg,#34503d,#213228)','#55735f','#f3efe2','"Cormorant Garamond"'],['shelley','Shelley','linear-gradient(180deg,#2e3a73,#1b2140)','#4a5a94','#e6ecf5','"Pirata One"'],['poe','Poe','linear-gradient(180deg,#7a2f3d,#4a1b27)','#8a4a55','#f1e6d0','"IM Fell English SC"']];
+F.forEach(([id,n,st,ed,tx,nf],i)=>{const c=document.createElement('div'); c.className='pc'+(id==='poe'?' final':''); c.style.cssText=`--st:${st};--ed:${ed};--tx:${tx};--nf:${nf};--i:${i}`;
+  c.innerHTML=`<img src="../art/${id}-normal.webp"><b>${n}</b>`+(id==='poe'?'<em>FINAL</em>':''); document.getElementById('g').append(c);});
+</script></body></html>
